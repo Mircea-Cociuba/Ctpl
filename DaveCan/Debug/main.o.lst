@@ -1,0 +1,138 @@
+   1              	 .syntax unified
+   2              	 .cpu cortex-m4
+   3              	 .eabi_attribute 27,3
+   4              	 .fpu fpv4-sp-d16
+   5              	 .eabi_attribute 20,1
+   6              	 .eabi_attribute 21,1
+   7              	 .eabi_attribute 23,3
+   8              	 .eabi_attribute 24,1
+   9              	 .eabi_attribute 25,1
+  10              	 .eabi_attribute 26,1
+  11              	 .eabi_attribute 30,6
+  12              	 .eabi_attribute 34,1
+  13              	 .eabi_attribute 18,4
+  14              	 .thumb
+  15              	 .file "main.c"
+  16              	 .text
+  17              	.Ltext0:
+  18              	 .cfi_sections .debug_frame
+  19              	 .section .text.main,"ax",%progbits
+  20              	 .align 2
+  21              	 .global main
+  22              	 .thumb
+  23              	 .thumb_func
+  25              	main:
+  26              	.LFB244:
+  27              	 .file 1 "../main.c"
+   1:../main.c     **** /*
+   2:../main.c     ****  * main.c
+   3:../main.c     ****  *
+   4:../main.c     ****  *  Created on: 2019 Jul 22 16:29:42
+   5:../main.c     ****  *  Author: uia94406
+   6:../main.c     ****  */
+   7:../main.c     **** 
+   8:../main.c     **** 
+   9:../main.c     **** 
+  10:../main.c     **** 
+  11:../main.c     **** #include <DAVE.h>                 //Declarations from DAVE Code Generation (includes SFR declaratio
+  12:../main.c     **** #include "os.h"
+  13:../main.c     **** #include "Can.h"
+  14:../main.c     **** #include "Ctpl.h"
+  15:../main.c     **** #include "appl.h"
+  16:../main.c     **** /**
+  17:../main.c     **** 
+  18:../main.c     ****  * @brief main() - Application entry point
+  19:../main.c     ****  *
+  20:../main.c     ****  * <b>Details of function</b><br>
+  21:../main.c     ****  * This routine is the application entry point. It is invoked by the device startup code. It is res
+  22:../main.c     ****  * invoking the APP initialization dispatcher routine - DAVE_Init() and hosting the place-holder fo
+  23:../main.c     ****  * code.
+  24:../main.c     ****  */
+  25:../main.c     **** 
+  26:../main.c     **** 
+  27:../main.c     **** 
+  28:../main.c     **** int main(void)
+  29:../main.c     **** {
+  28              	 .loc 1 29 0
+  29              	 .cfi_startproc
+  30              	 
+  31              	 
+  32 0000 80B5     	 push {r7,lr}
+  33              	.LCFI0:
+  34              	 .cfi_def_cfa_offset 8
+  35              	 .cfi_offset 7,-8
+  36              	 .cfi_offset 14,-4
+  37 0002 82B0     	 sub sp,sp,#8
+  38              	.LCFI1:
+  39              	 .cfi_def_cfa_offset 16
+  40 0004 00AF     	 add r7,sp,#0
+  41              	.LCFI2:
+  42              	 .cfi_def_cfa_register 7
+  30:../main.c     **** 	DAVE_STATUS_t status;
+  31:../main.c     **** 
+  32:../main.c     **** 	status = DAVE_Init();           /* Initialization of DAVE APPs  */
+  43              	 .loc 1 32 0
+  44 0006 FFF7FEFF 	 bl DAVE_Init
+  45 000a 0346     	 mov r3,r0
+  46 000c FB71     	 strb r3,[r7,#7]
+  33:../main.c     **** 
+  34:../main.c     **** 	if(status != DAVE_STATUS_SUCCESS)
+  47              	 .loc 1 34 0
+  48 000e FB79     	 ldrb r3,[r7,#7]
+  49 0010 002B     	 cmp r3,#0
+  50 0012 00D0     	 beq .L2
+  51              	.L3:
+  35:../main.c     **** 	{
+  36:../main.c     **** 		/* Placeholder for error handler code. The while loop below can be replaced with an user error ha
+  37:../main.c     **** 		XMC_DEBUG("DAVE APPs initialization failed\n");
+  38:../main.c     **** 
+  39:../main.c     **** 		while(1U)
+  40:../main.c     **** 		{
+  41:../main.c     **** 
+  42:../main.c     **** 		}
+  52              	 .loc 1 42 0 discriminator 1
+  53 0014 FEE7     	 b .L3
+  54              	.L2:
+  43:../main.c     **** 	}
+  44:../main.c     **** 
+  45:../main.c     **** 	Os_Init();
+  55              	 .loc 1 45 0
+  56 0016 FFF7FEFF 	 bl Os_Init
+  46:../main.c     **** 	Ctpl_Init();
+  57              	 .loc 1 46 0
+  58 001a FFF7FEFF 	 bl Ctpl_Init
+  47:../main.c     **** 	Appl_Init();
+  59              	 .loc 1 47 0
+  60 001e FFF7FEFF 	 bl Appl_Init
+  61              	.L4:
+  48:../main.c     **** 
+  49:../main.c     **** 	/* Placeholder for user application code. The while loop below can be replaced with user applicati
+  50:../main.c     **** 	while(1U)
+  51:../main.c     **** 	{
+  52:../main.c     **** 		(void)Can_CheckForRx();
+  62              	 .loc 1 52 0 discriminator 1
+  63 0022 FFF7FEFF 	 bl Can_CheckForRx
+  53:../main.c     **** 	}
+  64              	 .loc 1 53 0 discriminator 1
+  65 0026 FCE7     	 b .L4
+  66              	 .cfi_endproc
+  67              	.LFE244:
+  69              	 .text
+  70              	.Letext0:
+  71              	 .file 2 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\machine\\_default_types.h"
+  72              	 .file 3 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\stdint.h"
+  73              	 .file 4 "D:/practica/proiect/DaveCan/Dave/Generated/DAVE.h"
+  74              	 .file 5 "D:/practica/proiect/DaveCan/Libraries/CMSIS/Include/core_cm4.h"
+  75              	 .file 6 "D:/practica/proiect/DaveCan/Libraries/CMSIS/Infineon/XMC4500_series/Include/system_XMC4500.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 main.c
+    {standard input}:20     .text.main:00000000 $t
+    {standard input}:25     .text.main:00000000 main
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+DAVE_Init
+Os_Init
+Ctpl_Init
+Appl_Init
+Can_CheckForRx

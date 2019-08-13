@@ -1,0 +1,278 @@
+   1              	 .syntax unified
+   2              	 .cpu cortex-m4
+   3              	 .eabi_attribute 27,3
+   4              	 .fpu fpv4-sp-d16
+   5              	 .eabi_attribute 20,1
+   6              	 .eabi_attribute 21,1
+   7              	 .eabi_attribute 23,3
+   8              	 .eabi_attribute 24,1
+   9              	 .eabi_attribute 25,1
+  10              	 .eabi_attribute 26,1
+  11              	 .eabi_attribute 30,6
+  12              	 .eabi_attribute 34,1
+  13              	 .eabi_attribute 18,4
+  14              	 .thumb
+  15              	 .file "os.c"
+  16              	 .text
+  17              	.Ltext0:
+  18              	 .cfi_sections .debug_frame
+  19              	 .comm TimerId_1ms,4,4
+  20              	 .comm TimerId_10ms,4,4
+  21              	 .comm TimerId_5ms,4,4
+  22              	 .section .text.Os_Init,"ax",%progbits
+  23              	 .align 2
+  24              	 .global Os_Init
+  25              	 .thumb
+  26              	 .thumb_func
+  28              	Os_Init:
+  29              	.LFB244:
+  30              	 .file 1 "../OS/os.c"
+   1:../OS/os.c    **** /*
+   2:../OS/os.c    ****  * os.c
+   3:../OS/os.c    ****  *
+   4:../OS/os.c    ****  *  Created on: Jul 23, 2019
+   5:../OS/os.c    ****  *      Author: uia94406
+   6:../OS/os.c    ****  */
+   7:../OS/os.c    **** 
+   8:../OS/os.c    **** #include <DAVE.h>
+   9:../OS/os.c    **** #include "os.h"
+  10:../OS/os.c    **** #include "Can.h"
+  11:../OS/os.c    **** #include "Ctpl.h"
+  12:../OS/os.c    **** #include "appl.h"
+  13:../OS/os.c    **** 
+  14:../OS/os.c    **** #define ONE_MILI_SEC 1000U
+  15:../OS/os.c    **** 
+  16:../OS/os.c    **** /*OS timers*/
+  17:../OS/os.c    **** uint32_t TimerId_1ms;
+  18:../OS/os.c    **** uint32_t TimerId_10ms;
+  19:../OS/os.c    **** uint32_t TimerId_5ms;
+  20:../OS/os.c    **** 
+  21:../OS/os.c    **** 
+  22:../OS/os.c    **** 
+  23:../OS/os.c    **** void Os_Init(void)
+  24:../OS/os.c    **** {
+  31              	 .loc 1 24 0
+  32              	 .cfi_startproc
+  33              	 
+  34              	 
+  35 0000 80B5     	 push {r7,lr}
+  36              	.LCFI0:
+  37              	 .cfi_def_cfa_offset 8
+  38              	 .cfi_offset 7,-8
+  39              	 .cfi_offset 14,-4
+  40 0002 00AF     	 add r7,sp,#0
+  41              	.LCFI1:
+  42              	 .cfi_def_cfa_register 7
+  25:../OS/os.c    **** 	TimerId_1ms = (uint32_t)SYSTIMER_CreateTimer(ONE_MILI_SEC,SYSTIMER_MODE_PERIODIC,(void*)OS_1MS_Tas
+  43              	 .loc 1 25 0
+  44 0004 4FF47A70 	 mov r0,#1000
+  45 0008 0121     	 movs r1,#1
+  46 000a 154A     	 ldr r2,.L2
+  47 000c 0023     	 movs r3,#0
+  48 000e FFF7FEFF 	 bl SYSTIMER_CreateTimer
+  49 0012 0246     	 mov r2,r0
+  50 0014 134B     	 ldr r3,.L2+4
+  51 0016 1A60     	 str r2,[r3]
+  26:../OS/os.c    **** 	TimerId_5ms = (uint32_t)SYSTIMER_CreateTimer(ONE_MILI_SEC * 5u,SYSTIMER_MODE_PERIODIC,(void*)OS_5M
+  52              	 .loc 1 26 0
+  53 0018 41F28830 	 movw r0,#5000
+  54 001c 0121     	 movs r1,#1
+  55 001e 124A     	 ldr r2,.L2+8
+  56 0020 0023     	 movs r3,#0
+  57 0022 FFF7FEFF 	 bl SYSTIMER_CreateTimer
+  58 0026 0246     	 mov r2,r0
+  59 0028 104B     	 ldr r3,.L2+12
+  60 002a 1A60     	 str r2,[r3]
+  27:../OS/os.c    **** 	TimerId_10ms = (uint32_t)SYSTIMER_CreateTimer(ONE_MILI_SEC * 10u,SYSTIMER_MODE_PERIODIC,(void*)OS_
+  61              	 .loc 1 27 0
+  62 002c 42F21070 	 movw r0,#10000
+  63 0030 0121     	 movs r1,#1
+  64 0032 0F4A     	 ldr r2,.L2+16
+  65 0034 0023     	 movs r3,#0
+  66 0036 FFF7FEFF 	 bl SYSTIMER_CreateTimer
+  67 003a 0246     	 mov r2,r0
+  68 003c 0D4B     	 ldr r3,.L2+20
+  69 003e 1A60     	 str r2,[r3]
+  28:../OS/os.c    **** 
+  29:../OS/os.c    **** 	//timer is created successfully, now start/run software timer
+  30:../OS/os.c    **** 
+  31:../OS/os.c    **** 	SYSTIMER_StartTimer(TimerId_1ms);
+  70              	 .loc 1 31 0
+  71 0040 084B     	 ldr r3,.L2+4
+  72 0042 1B68     	 ldr r3,[r3]
+  73 0044 1846     	 mov r0,r3
+  74 0046 FFF7FEFF 	 bl SYSTIMER_StartTimer
+  32:../OS/os.c    **** 	SYSTIMER_StartTimer(TimerId_5ms);
+  75              	 .loc 1 32 0
+  76 004a 084B     	 ldr r3,.L2+12
+  77 004c 1B68     	 ldr r3,[r3]
+  78 004e 1846     	 mov r0,r3
+  79 0050 FFF7FEFF 	 bl SYSTIMER_StartTimer
+  33:../OS/os.c    **** 	SYSTIMER_StartTimer(TimerId_10ms);
+  80              	 .loc 1 33 0
+  81 0054 074B     	 ldr r3,.L2+20
+  82 0056 1B68     	 ldr r3,[r3]
+  83 0058 1846     	 mov r0,r3
+  84 005a FFF7FEFF 	 bl SYSTIMER_StartTimer
+  34:../OS/os.c    **** }
+  85              	 .loc 1 34 0
+  86 005e 80BD     	 pop {r7,pc}
+  87              	.L3:
+  88              	 .align 2
+  89              	.L2:
+  90 0060 00000000 	 .word OS_1MS_Task
+  91 0064 00000000 	 .word TimerId_1ms
+  92 0068 00000000 	 .word OS_5MS_Task
+  93 006c 00000000 	 .word TimerId_5ms
+  94 0070 00000000 	 .word OS_10MS_Task
+  95 0074 00000000 	 .word TimerId_10ms
+  96              	 .cfi_endproc
+  97              	.LFE244:
+  99              	 .section .text.OS_1MS_Task,"ax",%progbits
+ 100              	 .align 2
+ 101              	 .global OS_1MS_Task
+ 102              	 .thumb
+ 103              	 .thumb_func
+ 105              	OS_1MS_Task:
+ 106              	.LFB245:
+  35:../OS/os.c    **** 
+  36:../OS/os.c    **** 
+  37:../OS/os.c    **** /* Function: Will be called every 1ms
+  38:../OS/os.c    ****  * input none
+  39:../OS/os.c    ****  * output none
+  40:../OS/os.c    ****  *
+  41:../OS/os.c    ****  * */
+  42:../OS/os.c    **** void OS_1MS_Task(void)
+  43:../OS/os.c    **** {
+ 107              	 .loc 1 43 0
+ 108              	 .cfi_startproc
+ 109              	 
+ 110              	 
+ 111 0000 80B5     	 push {r7,lr}
+ 112              	.LCFI2:
+ 113              	 .cfi_def_cfa_offset 8
+ 114              	 .cfi_offset 7,-8
+ 115              	 .cfi_offset 14,-4
+ 116 0002 00AF     	 add r7,sp,#0
+ 117              	.LCFI3:
+ 118              	 .cfi_def_cfa_register 7
+  44:../OS/os.c    **** 	Ctpl_MainFunction();
+ 119              	 .loc 1 44 0
+ 120 0004 FFF7FEFF 	 bl Ctpl_MainFunction
+  45:../OS/os.c    **** }
+ 121              	 .loc 1 45 0
+ 122 0008 80BD     	 pop {r7,pc}
+ 123              	 .cfi_endproc
+ 124              	.LFE245:
+ 126 000a 00BF     	 .section .text.OS_5MS_Task,"ax",%progbits
+ 127              	 .align 2
+ 128              	 .global OS_5MS_Task
+ 129              	 .thumb
+ 130              	 .thumb_func
+ 132              	OS_5MS_Task:
+ 133              	.LFB246:
+  46:../OS/os.c    **** 
+  47:../OS/os.c    **** /* Function: Will be called every 5ms
+  48:../OS/os.c    ****  * input none
+  49:../OS/os.c    ****  * output none
+  50:../OS/os.c    ****  *
+  51:../OS/os.c    ****  * */
+  52:../OS/os.c    **** void OS_5MS_Task(void)
+  53:../OS/os.c    **** {
+ 134              	 .loc 1 53 0
+ 135              	 .cfi_startproc
+ 136              	 
+ 137              	 
+ 138 0000 80B5     	 push {r7,lr}
+ 139              	.LCFI4:
+ 140              	 .cfi_def_cfa_offset 8
+ 141              	 .cfi_offset 7,-8
+ 142              	 .cfi_offset 14,-4
+ 143 0002 00AF     	 add r7,sp,#0
+ 144              	.LCFI5:
+ 145              	 .cfi_def_cfa_register 7
+  54:../OS/os.c    **** 	Appl_MainFunction();
+ 146              	 .loc 1 54 0
+ 147 0004 FFF7FEFF 	 bl Appl_MainFunction
+  55:../OS/os.c    **** }
+ 148              	 .loc 1 55 0
+ 149 0008 80BD     	 pop {r7,pc}
+ 150              	 .cfi_endproc
+ 151              	.LFE246:
+ 153 000a 00BF     	 .section .text.OS_10MS_Task,"ax",%progbits
+ 154              	 .align 2
+ 155              	 .global OS_10MS_Task
+ 156              	 .thumb
+ 157              	 .thumb_func
+ 159              	OS_10MS_Task:
+ 160              	.LFB247:
+  56:../OS/os.c    **** 
+  57:../OS/os.c    **** /* Function: Will be called every 10ms
+  58:../OS/os.c    ****  * input none
+  59:../OS/os.c    ****  * output none
+  60:../OS/os.c    ****  *
+  61:../OS/os.c    ****  * */
+  62:../OS/os.c    **** void OS_10MS_Task(void)
+  63:../OS/os.c    **** {
+ 161              	 .loc 1 63 0
+ 162              	 .cfi_startproc
+ 163              	 
+ 164              	 
+ 165              	 
+ 166 0000 80B4     	 push {r7}
+ 167              	.LCFI6:
+ 168              	 .cfi_def_cfa_offset 4
+ 169              	 .cfi_offset 7,-4
+ 170 0002 00AF     	 add r7,sp,#0
+ 171              	.LCFI7:
+ 172              	 .cfi_def_cfa_register 7
+  64:../OS/os.c    **** #if 0
+  65:../OS/os.c    **** 	//just for DEMO! should be deleted when starting the real soft development
+  66:../OS/os.c    **** 	static uint8_t ticker=0;
+  67:../OS/os.c    **** 	uint8_t dat[8]={0,0,0,0, 0,0,0,0};
+  68:../OS/os.c    **** 
+  69:../OS/os.c    **** 	dat[0]=ticker++;
+  70:../OS/os.c    **** 	Can_SetTxData(&dat[0]);
+  71:../OS/os.c    **** 	Can_Transmit();
+  72:../OS/os.c    **** #endif
+  73:../OS/os.c    **** }
+ 173              	 .loc 1 73 0
+ 174 0004 BD46     	 mov sp,r7
+ 175              	.LCFI8:
+ 176              	 .cfi_def_cfa_register 13
+ 177              	 
+ 178 0006 5DF8047B 	 ldr r7,[sp],#4
+ 179              	.LCFI9:
+ 180              	 .cfi_restore 7
+ 181              	 .cfi_def_cfa_offset 0
+ 182 000a 7047     	 bx lr
+ 183              	 .cfi_endproc
+ 184              	.LFE247:
+ 186              	 .text
+ 187              	.Letext0:
+ 188              	 .file 2 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 189              	 .file 3 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\stdint.h"
+ 190              	 .file 4 "D:/practica/proiect/DaveCan/Libraries/CMSIS/Include/core_cm4.h"
+ 191              	 .file 5 "D:/practica/proiect/DaveCan/Libraries/CMSIS/Infineon/XMC4500_series/Include/system_XMC4500.h"
+ 192              	 .file 6 "D:/practica/proiect/DaveCan/Dave/Generated/SYSTIMER/systimer.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 os.c
+                            *COM*:00000004 TimerId_1ms
+                            *COM*:00000004 TimerId_10ms
+                            *COM*:00000004 TimerId_5ms
+    {standard input}:23     .text.Os_Init:00000000 $t
+    {standard input}:28     .text.Os_Init:00000000 Os_Init
+    {standard input}:90     .text.Os_Init:00000060 $d
+    {standard input}:105    .text.OS_1MS_Task:00000000 OS_1MS_Task
+    {standard input}:132    .text.OS_5MS_Task:00000000 OS_5MS_Task
+    {standard input}:159    .text.OS_10MS_Task:00000000 OS_10MS_Task
+    {standard input}:100    .text.OS_1MS_Task:00000000 $t
+    {standard input}:127    .text.OS_5MS_Task:00000000 $t
+    {standard input}:154    .text.OS_10MS_Task:00000000 $t
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+SYSTIMER_CreateTimer
+SYSTIMER_StartTimer
+Ctpl_MainFunction
+Appl_MainFunction

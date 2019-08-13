@@ -1,0 +1,1129 @@
+   1              	 .syntax unified
+   2              	 .cpu cortex-m4
+   3              	 .eabi_attribute 27,3
+   4              	 .fpu fpv4-sp-d16
+   5              	 .eabi_attribute 20,1
+   6              	 .eabi_attribute 21,1
+   7              	 .eabi_attribute 23,3
+   8              	 .eabi_attribute 24,1
+   9              	 .eabi_attribute 25,1
+  10              	 .eabi_attribute 26,1
+  11              	 .eabi_attribute 30,6
+  12              	 .eabi_attribute 34,1
+  13              	 .eabi_attribute 18,4
+  14              	 .thumb
+  15              	 .file "Ctpl.c"
+  16              	 .text
+  17              	.Ltext0:
+  18              	 .cfi_sections .debug_frame
+  19              	 .comm DataCtpl,4,4
+  20              	 .comm PozDataBuffer,2,2
+  21              	 .comm message,8,4
+  22              	 .comm state,1,1
+  23              	 .section .bss.rxNotif,"aw",%nobits
+  26              	rxNotif:
+  27 0000 00       	 .space 1
+  28              	 .comm NumbersOfCF,1,1
+  29              	 .comm LengthOfFF,2,2
+  30              	 .section .bss.txNotif,"aw",%nobits
+  33              	txNotif:
+  34 0000 00       	 .space 1
+  35              	 .comm SeqNrCnt,1,1
+  36              	 .comm Ctpl_LastFrameTimeOut,4,4
+  37              	 .comm Ctpl_CurrentTime,4,4
+  38              	 .section .bss.Cptl_MultiFrameRxOnGoing,"aw",%nobits
+  41              	Cptl_MultiFrameRxOnGoing:
+  42 0000 00       	 .space 1
+  43              	 .section .text.Ctpl_Init,"ax",%progbits
+  44              	 .align 2
+  45              	 .global Ctpl_Init
+  46              	 .thumb
+  47              	 .thumb_func
+  49              	Ctpl_Init:
+  50              	.LFB136:
+  51              	 .file 1 "../CanTpLite/Ctpl.c"
+   1:../CanTpLite/Ctpl.c **** #include "stdint.h"
+   2:../CanTpLite/Ctpl.c **** #include "Can.h"
+   3:../CanTpLite/Ctpl.c **** #include "Ctpl.h"
+   4:../CanTpLite/Ctpl.c **** #include "appl.h"
+   5:../CanTpLite/Ctpl.c **** #include "..\Dave\Generated\SYSTIMER\systimer.h"
+   6:../CanTpLite/Ctpl.c **** #include <stdbool.h>
+   7:../CanTpLite/Ctpl.c **** 
+   8:../CanTpLite/Ctpl.c **** 
+   9:../CanTpLite/Ctpl.c **** 
+  10:../CanTpLite/Ctpl.c **** /* local defines */
+  11:../CanTpLite/Ctpl.c **** #define CTPL_FLOW_CONTROL_CTS  (0x30u)
+  12:../CanTpLite/Ctpl.c **** #define CTPL_FLOW_CONTROL_WAIT (0x31u)
+  13:../CanTpLite/Ctpl.c **** #define CTPL_FLOW_CONTROL_OVF  (0x32u)
+  14:../CanTpLite/Ctpl.c **** #define CTPL_SINFLE_FRAME_NIBLE       (0x0)
+  15:../CanTpLite/Ctpl.c **** #define CTPL_MULTIPLE_FRAME_NIBLE     (0x1)
+  16:../CanTpLite/Ctpl.c **** #define CTPL_CONSECUTIVE_FRAME_NIBLE  (0x2)
+  17:../CanTpLite/Ctpl.c **** #define CTPL_FLOW_CONTROL_NIBLE       (0x3)
+  18:../CanTpLite/Ctpl.c **** #define CTPL_CF_TIMEOUT_200MS  (200000)
+  19:../CanTpLite/Ctpl.c **** 
+  20:../CanTpLite/Ctpl.c **** /* type definitions */
+  21:../CanTpLite/Ctpl.c **** typedef enum
+  22:../CanTpLite/Ctpl.c **** {
+  23:../CanTpLite/Ctpl.c **** 	CTPL_STATE_NONE, //Ctpl not initialized yet
+  24:../CanTpLite/Ctpl.c **** 	CTPL_STATE_INIT, //Ctpl has been initialized
+  25:../CanTpLite/Ctpl.c **** 
+  26:../CanTpLite/Ctpl.c **** 	CTPL_DEFAULT
+  27:../CanTpLite/Ctpl.c **** } CtplState_t;
+  28:../CanTpLite/Ctpl.c **** 
+  29:../CanTpLite/Ctpl.c **** 
+  30:../CanTpLite/Ctpl.c **** /* local variables */
+  31:../CanTpLite/Ctpl.c **** 
+  32:../CanTpLite/Ctpl.c **** uint8_t* DataCtpl;//fac pointer
+  33:../CanTpLite/Ctpl.c **** uint16_t PozDataBuffer;
+  34:../CanTpLite/Ctpl.c **** uint8_t message[8];
+  35:../CanTpLite/Ctpl.c **** CtplState_t state;
+  36:../CanTpLite/Ctpl.c **** static bool rxNotif; // flag pt ctpl rx_notif cu care verificam daca avem date
+  37:../CanTpLite/Ctpl.c **** uint8_t NumbersOfCF;
+  38:../CanTpLite/Ctpl.c **** uint16_t LengthOfFF;
+  39:../CanTpLite/Ctpl.c **** static bool txNotif;
+  40:../CanTpLite/Ctpl.c **** uint8_t SeqNrCnt;
+  41:../CanTpLite/Ctpl.c **** 
+  42:../CanTpLite/Ctpl.c **** /* global variables */
+  43:../CanTpLite/Ctpl.c **** 
+  44:../CanTpLite/Ctpl.c **** 
+  45:../CanTpLite/Ctpl.c **** /* local function declarations */
+  46:../CanTpLite/Ctpl.c **** static void Ctpl_SingleFrameHandler(void);
+  47:../CanTpLite/Ctpl.c **** static void Ctpl_MultiframeHandler(void);
+  48:../CanTpLite/Ctpl.c **** static void Ctpl_GetRxData(void);
+  49:../CanTpLite/Ctpl.c **** static uint8_t Ctpl_SendFlowControl(void);
+  50:../CanTpLite/Ctpl.c **** static bool Ctpl_ConsecutiveReading(bool isFirstFrame);
+  51:../CanTpLite/Ctpl.c **** uint8_t Ctpl_CnsFrmChecking(void);
+  52:../CanTpLite/Ctpl.c **** uint32_t Ctpl_LastFrameTimeOut;
+  53:../CanTpLite/Ctpl.c **** uint32_t Ctpl_CurrentTime;
+  54:../CanTpLite/Ctpl.c **** static bool Cptl_MultiFrameRxOnGoing;
+  55:../CanTpLite/Ctpl.c **** 
+  56:../CanTpLite/Ctpl.c **** /* global function definitions */
+  57:../CanTpLite/Ctpl.c **** void Ctpl_Init(void)
+  58:../CanTpLite/Ctpl.c **** {
+  52              	 .loc 1 58 0
+  53              	 .cfi_startproc
+  54              	 
+  55              	 
+  56 0000 80B5     	 push {r7,lr}
+  57              	.LCFI0:
+  58              	 .cfi_def_cfa_offset 8
+  59              	 .cfi_offset 7,-8
+  60              	 .cfi_offset 14,-4
+  61 0002 82B0     	 sub sp,sp,#8
+  62              	.LCFI1:
+  63              	 .cfi_def_cfa_offset 16
+  64 0004 00AF     	 add r7,sp,#0
+  65              	.LCFI2:
+  66              	 .cfi_def_cfa_register 7
+  59:../CanTpLite/Ctpl.c **** 	uint16_t i;
+  60:../CanTpLite/Ctpl.c **** 	rxNotif = false;
+  67              	 .loc 1 60 0
+  68 0006 154B     	 ldr r3,.L4
+  69 0008 0022     	 movs r2,#0
+  70 000a 1A70     	 strb r2,[r3]
+  61:../CanTpLite/Ctpl.c **** 	txNotif = false;
+  71              	 .loc 1 61 0
+  72 000c 144B     	 ldr r3,.L4+4
+  73 000e 0022     	 movs r2,#0
+  74 0010 1A70     	 strb r2,[r3]
+  62:../CanTpLite/Ctpl.c **** 
+  63:../CanTpLite/Ctpl.c **** 	state = CTPL_STATE_NONE;
+  75              	 .loc 1 63 0
+  76 0012 144B     	 ldr r3,.L4+8
+  77 0014 0022     	 movs r2,#0
+  78 0016 1A70     	 strb r2,[r3]
+  64:../CanTpLite/Ctpl.c **** 	for (i=0; i<sizeof(message); i++)
+  79              	 .loc 1 64 0
+  80 0018 0023     	 movs r3,#0
+  81 001a FB80     	 strh r3,[r7,#6]
+  82 001c 06E0     	 b .L2
+  83              	.L3:
+  65:../CanTpLite/Ctpl.c **** 	{
+  66:../CanTpLite/Ctpl.c **** 		message[i] = 0;
+  84              	 .loc 1 66 0 discriminator 3
+  85 001e FB88     	 ldrh r3,[r7,#6]
+  86 0020 114A     	 ldr r2,.L4+12
+  87 0022 0021     	 movs r1,#0
+  88 0024 D154     	 strb r1,[r2,r3]
+  64:../CanTpLite/Ctpl.c **** 	for (i=0; i<sizeof(message); i++)
+  89              	 .loc 1 64 0 discriminator 3
+  90 0026 FB88     	 ldrh r3,[r7,#6]
+  91 0028 0133     	 adds r3,r3,#1
+  92 002a FB80     	 strh r3,[r7,#6]
+  93              	.L2:
+  64:../CanTpLite/Ctpl.c **** 	for (i=0; i<sizeof(message); i++)
+  94              	 .loc 1 64 0 is_stmt 0 discriminator 1
+  95 002c FB88     	 ldrh r3,[r7,#6]
+  96 002e 072B     	 cmp r3,#7
+  97 0030 F5D9     	 bls .L3
+  67:../CanTpLite/Ctpl.c **** 	}
+  68:../CanTpLite/Ctpl.c **** 	PozDataBuffer=0;
+  98              	 .loc 1 68 0 is_stmt 1
+  99 0032 0E4B     	 ldr r3,.L4+16
+ 100 0034 0022     	 movs r2,#0
+ 101 0036 1A80     	 strh r2,[r3]
+  69:../CanTpLite/Ctpl.c **** 
+  70:../CanTpLite/Ctpl.c **** 	DataCtpl=Appl_GetDataPointer();
+ 102              	 .loc 1 70 0
+ 103 0038 FFF7FEFF 	 bl Appl_GetDataPointer
+ 104 003c 0246     	 mov r2,r0
+ 105 003e 0C4B     	 ldr r3,.L4+20
+ 106 0040 1A60     	 str r2,[r3]
+  71:../CanTpLite/Ctpl.c **** 	SeqNrCnt = 0x21;
+ 107              	 .loc 1 71 0
+ 108 0042 0C4B     	 ldr r3,.L4+24
+ 109 0044 2122     	 movs r2,#33
+ 110 0046 1A70     	 strb r2,[r3]
+  72:../CanTpLite/Ctpl.c **** 	Ctpl_LastFrameTimeOut=0;
+ 111              	 .loc 1 72 0
+ 112 0048 0B4B     	 ldr r3,.L4+28
+ 113 004a 0022     	 movs r2,#0
+ 114 004c 1A60     	 str r2,[r3]
+  73:../CanTpLite/Ctpl.c **** 	Cptl_MultiFrameRxOnGoing =false;
+ 115              	 .loc 1 73 0
+ 116 004e 0B4B     	 ldr r3,.L4+32
+ 117 0050 0022     	 movs r2,#0
+ 118 0052 1A70     	 strb r2,[r3]
+  74:../CanTpLite/Ctpl.c **** 
+  75:../CanTpLite/Ctpl.c **** }
+ 119              	 .loc 1 75 0
+ 120 0054 0837     	 adds r7,r7,#8
+ 121              	.LCFI3:
+ 122              	 .cfi_def_cfa_offset 8
+ 123 0056 BD46     	 mov sp,r7
+ 124              	.LCFI4:
+ 125              	 .cfi_def_cfa_register 13
+ 126              	 
+ 127 0058 80BD     	 pop {r7,pc}
+ 128              	.L5:
+ 129 005a 00BF     	 .align 2
+ 130              	.L4:
+ 131 005c 00000000 	 .word rxNotif
+ 132 0060 00000000 	 .word txNotif
+ 133 0064 00000000 	 .word state
+ 134 0068 00000000 	 .word message
+ 135 006c 00000000 	 .word PozDataBuffer
+ 136 0070 00000000 	 .word DataCtpl
+ 137 0074 00000000 	 .word SeqNrCnt
+ 138 0078 00000000 	 .word Ctpl_LastFrameTimeOut
+ 139 007c 00000000 	 .word Cptl_MultiFrameRxOnGoing
+ 140              	 .cfi_endproc
+ 141              	.LFE136:
+ 143              	 .section .text.Ctpl_RxNotification,"ax",%progbits
+ 144              	 .align 2
+ 145              	 .global Ctpl_RxNotification
+ 146              	 .thumb
+ 147              	 .thumb_func
+ 149              	Ctpl_RxNotification:
+ 150              	.LFB137:
+  76:../CanTpLite/Ctpl.c **** 
+  77:../CanTpLite/Ctpl.c **** //data has been received
+  78:../CanTpLite/Ctpl.c **** void Ctpl_RxNotification(void)
+  79:../CanTpLite/Ctpl.c **** {
+ 151              	 .loc 1 79 0
+ 152              	 .cfi_startproc
+ 153              	 
+ 154              	 
+ 155              	 
+ 156 0000 80B4     	 push {r7}
+ 157              	.LCFI5:
+ 158              	 .cfi_def_cfa_offset 4
+ 159              	 .cfi_offset 7,-4
+ 160 0002 00AF     	 add r7,sp,#0
+ 161              	.LCFI6:
+ 162              	 .cfi_def_cfa_register 7
+  80:../CanTpLite/Ctpl.c **** 	rxNotif=true;
+ 163              	 .loc 1 80 0
+ 164 0004 034B     	 ldr r3,.L7
+ 165 0006 0122     	 movs r2,#1
+ 166 0008 1A70     	 strb r2,[r3]
+  81:../CanTpLite/Ctpl.c **** }
+ 167              	 .loc 1 81 0
+ 168 000a BD46     	 mov sp,r7
+ 169              	.LCFI7:
+ 170              	 .cfi_def_cfa_register 13
+ 171              	 
+ 172 000c 5DF8047B 	 ldr r7,[sp],#4
+ 173              	.LCFI8:
+ 174              	 .cfi_restore 7
+ 175              	 .cfi_def_cfa_offset 0
+ 176 0010 7047     	 bx lr
+ 177              	.L8:
+ 178 0012 00BF     	 .align 2
+ 179              	.L7:
+ 180 0014 00000000 	 .word rxNotif
+ 181              	 .cfi_endproc
+ 182              	.LFE137:
+ 184              	 .section .text.Ctpl_TxNotification,"ax",%progbits
+ 185              	 .align 2
+ 186              	 .global Ctpl_TxNotification
+ 187              	 .thumb
+ 188              	 .thumb_func
+ 190              	Ctpl_TxNotification:
+ 191              	.LFB138:
+  82:../CanTpLite/Ctpl.c **** 
+  83:../CanTpLite/Ctpl.c **** //data has been send succesfuly
+  84:../CanTpLite/Ctpl.c **** void Ctpl_TxNotification(void)
+  85:../CanTpLite/Ctpl.c **** {
+ 192              	 .loc 1 85 0
+ 193              	 .cfi_startproc
+ 194              	 
+ 195              	 
+ 196              	 
+ 197 0000 80B4     	 push {r7}
+ 198              	.LCFI9:
+ 199              	 .cfi_def_cfa_offset 4
+ 200              	 .cfi_offset 7,-4
+ 201 0002 00AF     	 add r7,sp,#0
+ 202              	.LCFI10:
+ 203              	 .cfi_def_cfa_register 7
+  86:../CanTpLite/Ctpl.c **** 	txNotif=true;
+ 204              	 .loc 1 86 0
+ 205 0004 034B     	 ldr r3,.L10
+ 206 0006 0122     	 movs r2,#1
+ 207 0008 1A70     	 strb r2,[r3]
+  87:../CanTpLite/Ctpl.c **** }
+ 208              	 .loc 1 87 0
+ 209 000a BD46     	 mov sp,r7
+ 210              	.LCFI11:
+ 211              	 .cfi_def_cfa_register 13
+ 212              	 
+ 213 000c 5DF8047B 	 ldr r7,[sp],#4
+ 214              	.LCFI12:
+ 215              	 .cfi_restore 7
+ 216              	 .cfi_def_cfa_offset 0
+ 217 0010 7047     	 bx lr
+ 218              	.L11:
+ 219 0012 00BF     	 .align 2
+ 220              	.L10:
+ 221 0014 00000000 	 .word txNotif
+ 222              	 .cfi_endproc
+ 223              	.LFE138:
+ 225              	 .section .text.Ctpl_MainFunction,"ax",%progbits
+ 226              	 .align 2
+ 227              	 .global Ctpl_MainFunction
+ 228              	 .thumb
+ 229              	 .thumb_func
+ 231              	Ctpl_MainFunction:
+ 232              	.LFB139:
+  88:../CanTpLite/Ctpl.c **** 
+  89:../CanTpLite/Ctpl.c **** void Ctpl_MainFunction(void)
+  90:../CanTpLite/Ctpl.c **** {
+ 233              	 .loc 1 90 0
+ 234              	 .cfi_startproc
+ 235              	 
+ 236              	 
+ 237 0000 80B5     	 push {r7,lr}
+ 238              	.LCFI13:
+ 239              	 .cfi_def_cfa_offset 8
+ 240              	 .cfi_offset 7,-8
+ 241              	 .cfi_offset 14,-4
+ 242 0002 00AF     	 add r7,sp,#0
+ 243              	.LCFI14:
+ 244              	 .cfi_def_cfa_register 7
+  91:../CanTpLite/Ctpl.c **** 	 Ctpl_CurrentTime = SYSTIMER_GetTime();
+ 245              	 .loc 1 91 0
+ 246 0004 FFF7FEFF 	 bl SYSTIMER_GetTime
+ 247 0008 0246     	 mov r2,r0
+ 248 000a 0A4B     	 ldr r3,.L15
+ 249 000c 1A60     	 str r2,[r3]
+  92:../CanTpLite/Ctpl.c **** 
+  93:../CanTpLite/Ctpl.c **** 	 if(rxNotif==true){
+ 250              	 .loc 1 93 0
+ 251 000e 0A4B     	 ldr r3,.L15+4
+ 252 0010 1B78     	 ldrb r3,[r3]
+ 253 0012 002B     	 cmp r3,#0
+ 254 0014 0AD0     	 beq .L13
+  94:../CanTpLite/Ctpl.c **** 		 Ctpl_GetRxData();   // am copiat date date din can in cptl
+ 255              	 .loc 1 94 0
+ 256 0016 FFF7FEFF 	 bl Ctpl_GetRxData
+  95:../CanTpLite/Ctpl.c **** 		 if(message[0] < (0x10))
+ 257              	 .loc 1 95 0
+ 258 001a 084B     	 ldr r3,.L15+8
+ 259 001c 1B78     	 ldrb r3,[r3]
+ 260 001e 0F2B     	 cmp r3,#15
+ 261 0020 02D8     	 bhi .L14
+  96:../CanTpLite/Ctpl.c **** 		 {
+  97:../CanTpLite/Ctpl.c **** 			 Ctpl_SingleFrameHandler();
+ 262              	 .loc 1 97 0
+ 263 0022 FFF7FEFF 	 bl Ctpl_SingleFrameHandler
+ 264 0026 01E0     	 b .L13
+ 265              	.L14:
+  98:../CanTpLite/Ctpl.c **** 		 }
+  99:../CanTpLite/Ctpl.c **** 		 else
+ 100:../CanTpLite/Ctpl.c **** 		 {
+ 101:../CanTpLite/Ctpl.c **** 			Ctpl_MultiframeHandler();
+ 266              	 .loc 1 101 0
+ 267 0028 FFF7FEFF 	 bl Ctpl_MultiframeHandler
+ 268              	.L13:
+ 102:../CanTpLite/Ctpl.c **** 		 }
+ 103:../CanTpLite/Ctpl.c **** 	 }
+ 104:../CanTpLite/Ctpl.c **** 
+ 105:../CanTpLite/Ctpl.c **** 	 rxNotif=false;
+ 269              	 .loc 1 105 0
+ 270 002c 024B     	 ldr r3,.L15+4
+ 271 002e 0022     	 movs r2,#0
+ 272 0030 1A70     	 strb r2,[r3]
+ 106:../CanTpLite/Ctpl.c **** //
+ 107:../CanTpLite/Ctpl.c **** //	 if(((Ctpl_CurrentTime - Ctpl_LastFrameTimeOut) > CTPL_CF_TIMEOUT_200MS) && (Cptl_MultiFrameRxOn
+ 108:../CanTpLite/Ctpl.c **** //	 {
+ 109:../CanTpLite/Ctpl.c **** //		 //eror CF transmit
+ 110:../CanTpLite/Ctpl.c **** //		Appl_ErrorNotification();
+ 111:../CanTpLite/Ctpl.c **** //
+ 112:../CanTpLite/Ctpl.c **** //	 }
+ 113:../CanTpLite/Ctpl.c **** 
+ 114:../CanTpLite/Ctpl.c **** }
+ 273              	 .loc 1 114 0
+ 274 0032 80BD     	 pop {r7,pc}
+ 275              	.L16:
+ 276              	 .align 2
+ 277              	.L15:
+ 278 0034 00000000 	 .word Ctpl_CurrentTime
+ 279 0038 00000000 	 .word rxNotif
+ 280 003c 00000000 	 .word message
+ 281              	 .cfi_endproc
+ 282              	.LFE139:
+ 284              	 .section .text.Ctpl_SendData,"ax",%progbits
+ 285              	 .align 2
+ 286              	 .global Ctpl_SendData
+ 287              	 .thumb
+ 288              	 .thumb_func
+ 290              	Ctpl_SendData:
+ 291              	.LFB140:
+ 115:../CanTpLite/Ctpl.c **** 
+ 116:../CanTpLite/Ctpl.c **** 
+ 117:../CanTpLite/Ctpl.c **** //Function is called by the Application to send data, SF, or MF over CAN
+ 118:../CanTpLite/Ctpl.c **** void Ctpl_SendData(uint8_t* buffer, uint16_t LengthOfFF)
+ 119:../CanTpLite/Ctpl.c **** {
+ 292              	 .loc 1 119 0
+ 293              	 .cfi_startproc
+ 294              	 
+ 295              	 
+ 296 0000 80B5     	 push {r7,lr}
+ 297              	.LCFI15:
+ 298              	 .cfi_def_cfa_offset 8
+ 299              	 .cfi_offset 7,-8
+ 300              	 .cfi_offset 14,-4
+ 301 0002 86B0     	 sub sp,sp,#24
+ 302              	.LCFI16:
+ 303              	 .cfi_def_cfa_offset 32
+ 304 0004 00AF     	 add r7,sp,#0
+ 305              	.LCFI17:
+ 306              	 .cfi_def_cfa_register 7
+ 307 0006 7860     	 str r0,[r7,#4]
+ 308 0008 0B46     	 mov r3,r1
+ 309 000a 7B80     	 strh r3,[r7,#2]
+ 120:../CanTpLite/Ctpl.c **** 
+ 121:../CanTpLite/Ctpl.c **** 	uint8_t i;
+ 122:../CanTpLite/Ctpl.c **** 	uint8_t dat[8]={ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+ 310              	 .loc 1 122 0
+ 311 000c 0023     	 movs r3,#0
+ 312 000e 3B73     	 strb r3,[r7,#12]
+ 313 0010 0023     	 movs r3,#0
+ 314 0012 7B73     	 strb r3,[r7,#13]
+ 315 0014 0023     	 movs r3,#0
+ 316 0016 BB73     	 strb r3,[r7,#14]
+ 317 0018 0023     	 movs r3,#0
+ 318 001a FB73     	 strb r3,[r7,#15]
+ 319 001c 0023     	 movs r3,#0
+ 320 001e 3B74     	 strb r3,[r7,#16]
+ 321 0020 0023     	 movs r3,#0
+ 322 0022 7B74     	 strb r3,[r7,#17]
+ 323 0024 0023     	 movs r3,#0
+ 324 0026 BB74     	 strb r3,[r7,#18]
+ 325 0028 0023     	 movs r3,#0
+ 326 002a FB74     	 strb r3,[r7,#19]
+ 123:../CanTpLite/Ctpl.c **** 
+ 124:../CanTpLite/Ctpl.c **** 
+ 125:../CanTpLite/Ctpl.c **** 	dat[0]=LengthOfFF;
+ 327              	 .loc 1 125 0
+ 328 002c 7B88     	 ldrh r3,[r7,#2]
+ 329 002e DBB2     	 uxtb r3,r3
+ 330 0030 3B73     	 strb r3,[r7,#12]
+ 126:../CanTpLite/Ctpl.c **** 
+ 127:../CanTpLite/Ctpl.c **** 
+ 128:../CanTpLite/Ctpl.c **** 	for(i=0;i<4;i++)
+ 331              	 .loc 1 128 0
+ 332 0032 0023     	 movs r3,#0
+ 333 0034 FB75     	 strb r3,[r7,#23]
+ 334 0036 0DE0     	 b .L18
+ 335              	.L19:
+ 129:../CanTpLite/Ctpl.c **** 	{
+ 130:../CanTpLite/Ctpl.c **** 		dat[i+1]= buffer[i];
+ 336              	 .loc 1 130 0 discriminator 3
+ 337 0038 FB7D     	 ldrb r3,[r7,#23]
+ 338 003a 0133     	 adds r3,r3,#1
+ 339 003c FA7D     	 ldrb r2,[r7,#23]
+ 340 003e 7968     	 ldr r1,[r7,#4]
+ 341 0040 0A44     	 add r2,r2,r1
+ 342 0042 1278     	 ldrb r2,[r2]
+ 343 0044 07F11801 	 add r1,r7,#24
+ 344 0048 0B44     	 add r3,r3,r1
+ 345 004a 03F80C2C 	 strb r2,[r3,#-12]
+ 128:../CanTpLite/Ctpl.c **** 	{
+ 346              	 .loc 1 128 0 discriminator 3
+ 347 004e FB7D     	 ldrb r3,[r7,#23]
+ 348 0050 0133     	 adds r3,r3,#1
+ 349 0052 FB75     	 strb r3,[r7,#23]
+ 350              	.L18:
+ 128:../CanTpLite/Ctpl.c **** 	{
+ 351              	 .loc 1 128 0 is_stmt 0 discriminator 1
+ 352 0054 FB7D     	 ldrb r3,[r7,#23]
+ 353 0056 032B     	 cmp r3,#3
+ 354 0058 EED9     	 bls .L19
+ 131:../CanTpLite/Ctpl.c **** 	}
+ 132:../CanTpLite/Ctpl.c **** 	Can_SetTxData(&dat[0]);
+ 355              	 .loc 1 132 0 is_stmt 1
+ 356 005a 07F10C03 	 add r3,r7,#12
+ 357 005e 1846     	 mov r0,r3
+ 358 0060 FFF7FEFF 	 bl Can_SetTxData
+ 133:../CanTpLite/Ctpl.c **** 	Can_Transmit();
+ 359              	 .loc 1 133 0
+ 360 0064 FFF7FEFF 	 bl Can_Transmit
+ 134:../CanTpLite/Ctpl.c **** 
+ 135:../CanTpLite/Ctpl.c **** }
+ 361              	 .loc 1 135 0
+ 362 0068 1837     	 adds r7,r7,#24
+ 363              	.LCFI18:
+ 364              	 .cfi_def_cfa_offset 8
+ 365 006a BD46     	 mov sp,r7
+ 366              	.LCFI19:
+ 367              	 .cfi_def_cfa_register 13
+ 368              	 
+ 369 006c 80BD     	 pop {r7,pc}
+ 370              	 .cfi_endproc
+ 371              	.LFE140:
+ 373 006e 00BF     	 .section .text.Ctpl_SingleFrameHandler,"ax",%progbits
+ 374              	 .align 2
+ 375              	 .thumb
+ 376              	 .thumb_func
+ 378              	Ctpl_SingleFrameHandler:
+ 379              	.LFB141:
+ 136:../CanTpLite/Ctpl.c **** 
+ 137:../CanTpLite/Ctpl.c **** /* local function definitions */
+ 138:../CanTpLite/Ctpl.c **** /* Functia pt SF*/
+ 139:../CanTpLite/Ctpl.c **** void Ctpl_SingleFrameHandler(void)
+ 140:../CanTpLite/Ctpl.c **** {
+ 380              	 .loc 1 140 0
+ 381              	 .cfi_startproc
+ 382              	 
+ 383              	 
+ 384 0000 80B5     	 push {r7,lr}
+ 385              	.LCFI20:
+ 386              	 .cfi_def_cfa_offset 8
+ 387              	 .cfi_offset 7,-8
+ 388              	 .cfi_offset 14,-4
+ 389 0002 82B0     	 sub sp,sp,#8
+ 390              	.LCFI21:
+ 391              	 .cfi_def_cfa_offset 16
+ 392 0004 00AF     	 add r7,sp,#0
+ 393              	.LCFI22:
+ 394              	 .cfi_def_cfa_register 7
+ 141:../CanTpLite/Ctpl.c **** 	if(message[0]>7)
+ 395              	 .loc 1 141 0
+ 396 0006 0E4B     	 ldr r3,.L24
+ 397 0008 1B78     	 ldrb r3,[r3]
+ 398 000a 072B     	 cmp r3,#7
+ 399 000c 15D8     	 bhi .L20
+ 400              	.LBB2:
+ 142:../CanTpLite/Ctpl.c **** 	{
+ 143:../CanTpLite/Ctpl.c **** 		//handler eroare
+ 144:../CanTpLite/Ctpl.c **** 	}
+ 145:../CanTpLite/Ctpl.c **** 	else
+ 146:../CanTpLite/Ctpl.c **** 	{
+ 147:../CanTpLite/Ctpl.c **** 		uint8_t i;
+ 148:../CanTpLite/Ctpl.c **** 		for(i=0;i<message[0];i++)
+ 401              	 .loc 1 148 0
+ 402 000e 0023     	 movs r3,#0
+ 403 0010 FB71     	 strb r3,[r7,#7]
+ 404 0012 0BE0     	 b .L22
+ 405              	.L23:
+ 149:../CanTpLite/Ctpl.c **** 		{
+ 150:../CanTpLite/Ctpl.c **** 			DataCtpl[i]=message[i+1];
+ 406              	 .loc 1 150 0 discriminator 3
+ 407 0014 0B4B     	 ldr r3,.L24+4
+ 408 0016 1A68     	 ldr r2,[r3]
+ 409 0018 FB79     	 ldrb r3,[r7,#7]
+ 410 001a 1344     	 add r3,r3,r2
+ 411 001c FA79     	 ldrb r2,[r7,#7]
+ 412 001e 0132     	 adds r2,r2,#1
+ 413 0020 0749     	 ldr r1,.L24
+ 414 0022 8A5C     	 ldrb r2,[r1,r2]
+ 415 0024 1A70     	 strb r2,[r3]
+ 148:../CanTpLite/Ctpl.c **** 		{
+ 416              	 .loc 1 148 0 discriminator 3
+ 417 0026 FB79     	 ldrb r3,[r7,#7]
+ 418 0028 0133     	 adds r3,r3,#1
+ 419 002a FB71     	 strb r3,[r7,#7]
+ 420              	.L22:
+ 148:../CanTpLite/Ctpl.c **** 		{
+ 421              	 .loc 1 148 0 is_stmt 0 discriminator 1
+ 422 002c 044B     	 ldr r3,.L24
+ 423 002e 1B78     	 ldrb r3,[r3]
+ 424 0030 FA79     	 ldrb r2,[r7,#7]
+ 425 0032 9A42     	 cmp r2,r3
+ 426 0034 EED3     	 bcc .L23
+ 151:../CanTpLite/Ctpl.c **** 		}
+ 152:../CanTpLite/Ctpl.c **** 		Appl_RxNotification();
+ 427              	 .loc 1 152 0 is_stmt 1
+ 428 0036 FFF7FEFF 	 bl Appl_RxNotification
+ 429              	.L20:
+ 430              	.LBE2:
+ 153:../CanTpLite/Ctpl.c **** 	}
+ 154:../CanTpLite/Ctpl.c **** }
+ 431              	 .loc 1 154 0
+ 432 003a 0837     	 adds r7,r7,#8
+ 433              	.LCFI23:
+ 434              	 .cfi_def_cfa_offset 8
+ 435 003c BD46     	 mov sp,r7
+ 436              	.LCFI24:
+ 437              	 .cfi_def_cfa_register 13
+ 438              	 
+ 439 003e 80BD     	 pop {r7,pc}
+ 440              	.L25:
+ 441              	 .align 2
+ 442              	.L24:
+ 443 0040 00000000 	 .word message
+ 444 0044 00000000 	 .word DataCtpl
+ 445              	 .cfi_endproc
+ 446              	.LFE141:
+ 448              	 .section .text.Ctpl_MultiframeHandler,"ax",%progbits
+ 449              	 .align 2
+ 450              	 .thumb
+ 451              	 .thumb_func
+ 453              	Ctpl_MultiframeHandler:
+ 454              	.LFB142:
+ 155:../CanTpLite/Ctpl.c **** 
+ 156:../CanTpLite/Ctpl.c **** /*Functie de MF si de impartire a frame-urilor*/
+ 157:../CanTpLite/Ctpl.c **** void Ctpl_MultiframeHandler(void)
+ 158:../CanTpLite/Ctpl.c **** {
+ 455              	 .loc 1 158 0
+ 456              	 .cfi_startproc
+ 457              	 
+ 458              	 
+ 459 0000 80B5     	 push {r7,lr}
+ 460              	.LCFI25:
+ 461              	 .cfi_def_cfa_offset 8
+ 462              	 .cfi_offset 7,-8
+ 463              	 .cfi_offset 14,-4
+ 464 0002 00AF     	 add r7,sp,#0
+ 465              	.LCFI26:
+ 466              	 .cfi_def_cfa_register 7
+ 159:../CanTpLite/Ctpl.c **** 	static bool isFirstFrame = true;
+ 160:../CanTpLite/Ctpl.c **** 
+ 161:../CanTpLite/Ctpl.c **** 	if (isFirstFrame)
+ 467              	 .loc 1 161 0
+ 468 0004 294B     	 ldr r3,.L34
+ 469 0006 1B78     	 ldrb r3,[r3]
+ 470 0008 002B     	 cmp r3,#0
+ 471 000a 25D0     	 beq .L27
+ 162:../CanTpLite/Ctpl.c **** 	{
+ 163:../CanTpLite/Ctpl.c **** 		LengthOfFF = ((message[0] & (0x000f)) << 8 )| message[1]; //lungimea mesajului
+ 472              	 .loc 1 163 0
+ 473 000c 284B     	 ldr r3,.L34+4
+ 474 000e 1B78     	 ldrb r3,[r3]
+ 475 0010 03F00F03 	 and r3,r3,#15
+ 476 0014 1B02     	 lsls r3,r3,#8
+ 477 0016 9AB2     	 uxth r2,r3
+ 478 0018 254B     	 ldr r3,.L34+4
+ 479 001a 5B78     	 ldrb r3,[r3,#1]
+ 480 001c 9BB2     	 uxth r3,r3
+ 481 001e 1343     	 orrs r3,r3,r2
+ 482 0020 9BB2     	 uxth r3,r3
+ 483 0022 9AB2     	 uxth r2,r3
+ 484 0024 234B     	 ldr r3,.L34+8
+ 485 0026 1A80     	 strh r2,[r3]
+ 164:../CanTpLite/Ctpl.c **** 		NumbersOfCF = LengthOfFF/7;  // cate CF sunt
+ 486              	 .loc 1 164 0
+ 487 0028 224B     	 ldr r3,.L34+8
+ 488 002a 1A88     	 ldrh r2,[r3]
+ 489 002c 224B     	 ldr r3,.L34+12
+ 490 002e A3FB0213 	 umull r1,r3,r3,r2
+ 491 0032 D21A     	 subs r2,r2,r3
+ 492 0034 5208     	 lsrs r2,r2,#1
+ 493 0036 1344     	 add r3,r3,r2
+ 494 0038 9B08     	 lsrs r3,r3,#2
+ 495 003a 9BB2     	 uxth r3,r3
+ 496 003c DAB2     	 uxtb r2,r3
+ 497 003e 1F4B     	 ldr r3,.L34+16
+ 498 0040 1A70     	 strb r2,[r3]
+ 165:../CanTpLite/Ctpl.c **** 		if (Ctpl_SendFlowControl() != 0) // verifica daca a fost trimis FC
+ 499              	 .loc 1 165 0
+ 500 0042 FFF7FEFF 	 bl Ctpl_SendFlowControl
+ 501 0046 0346     	 mov r3,r0
+ 502 0048 002B     	 cmp r3,#0
+ 503 004a 01D0     	 beq .L28
+ 504              	.LBB3:
+ 166:../CanTpLite/Ctpl.c **** 		{
+ 167:../CanTpLite/Ctpl.c **** 			/* Handle flow control error */
+ 168:../CanTpLite/Ctpl.c **** 			Appl_ErrorNotification();
+ 505              	 .loc 1 168 0
+ 506 004c FFF7FEFF 	 bl Appl_ErrorNotification
+ 507              	.L28:
+ 508              	.LBE3:
+ 169:../CanTpLite/Ctpl.c **** 		}
+ 170:../CanTpLite/Ctpl.c **** 		Cptl_MultiFrameRxOnGoing=true;
+ 509              	 .loc 1 170 0
+ 510 0050 1B4B     	 ldr r3,.L34+20
+ 511 0052 0122     	 movs r2,#1
+ 512 0054 1A70     	 strb r2,[r3]
+ 513 0056 15E0     	 b .L29
+ 514              	.L27:
+ 171:../CanTpLite/Ctpl.c **** 	}
+ 172:../CanTpLite/Ctpl.c **** 	else
+ 173:../CanTpLite/Ctpl.c **** 	{   /*Verifica daca a trimis in ordine CF*/
+ 174:../CanTpLite/Ctpl.c **** 		if(SeqNrCnt== message[0])
+ 515              	 .loc 1 174 0
+ 516 0058 154B     	 ldr r3,.L34+4
+ 517 005a 1A78     	 ldrb r2,[r3]
+ 518 005c 194B     	 ldr r3,.L34+24
+ 519 005e 1B78     	 ldrb r3,[r3]
+ 520 0060 9A42     	 cmp r2,r3
+ 521 0062 0DD1     	 bne .L30
+ 175:../CanTpLite/Ctpl.c **** 		{
+ 176:../CanTpLite/Ctpl.c **** 			SeqNrCnt++;
+ 522              	 .loc 1 176 0
+ 523 0064 174B     	 ldr r3,.L34+24
+ 524 0066 1B78     	 ldrb r3,[r3]
+ 525 0068 0133     	 adds r3,r3,#1
+ 526 006a DAB2     	 uxtb r2,r3
+ 527 006c 154B     	 ldr r3,.L34+24
+ 528 006e 1A70     	 strb r2,[r3]
+ 177:../CanTpLite/Ctpl.c **** 			if(SeqNrCnt > 0x2f)
+ 529              	 .loc 1 177 0
+ 530 0070 144B     	 ldr r3,.L34+24
+ 531 0072 1B78     	 ldrb r3,[r3]
+ 532 0074 2F2B     	 cmp r3,#47
+ 533 0076 05D9     	 bls .L29
+ 178:../CanTpLite/Ctpl.c **** 			{
+ 179:../CanTpLite/Ctpl.c **** 				SeqNrCnt=0x20;
+ 534              	 .loc 1 179 0
+ 535 0078 124B     	 ldr r3,.L34+24
+ 536 007a 2022     	 movs r2,#32
+ 537 007c 1A70     	 strb r2,[r3]
+ 538 007e 01E0     	 b .L29
+ 539              	.L30:
+ 540              	.LBB4:
+ 180:../CanTpLite/Ctpl.c **** 			}
+ 181:../CanTpLite/Ctpl.c **** 		}
+ 182:../CanTpLite/Ctpl.c **** 		else
+ 183:../CanTpLite/Ctpl.c **** 		{
+ 184:../CanTpLite/Ctpl.c **** 			Appl_ErrorNotification();
+ 541              	 .loc 1 184 0
+ 542 0080 FFF7FEFF 	 bl Appl_ErrorNotification
+ 543              	.L29:
+ 544              	.LBE4:
+ 185:../CanTpLite/Ctpl.c **** 		}
+ 186:../CanTpLite/Ctpl.c **** 	}
+ 187:../CanTpLite/Ctpl.c **** 
+ 188:../CanTpLite/Ctpl.c **** 	Ctpl_LastFrameTimeOut = Ctpl_CurrentTime;
+ 545              	 .loc 1 188 0
+ 546 0084 104B     	 ldr r3,.L34+28
+ 547 0086 1B68     	 ldr r3,[r3]
+ 548 0088 104A     	 ldr r2,.L34+32
+ 549 008a 1360     	 str r3,[r2]
+ 189:../CanTpLite/Ctpl.c **** 
+ 190:../CanTpLite/Ctpl.c **** 
+ 191:../CanTpLite/Ctpl.c **** 	if(Ctpl_ConsecutiveReading(isFirstFrame)==true)
+ 550              	 .loc 1 191 0
+ 551 008c 074B     	 ldr r3,.L34
+ 552 008e 1B78     	 ldrb r3,[r3]
+ 553 0090 1846     	 mov r0,r3
+ 554 0092 FFF7FEFF 	 bl Ctpl_ConsecutiveReading
+ 555 0096 0346     	 mov r3,r0
+ 556 0098 002B     	 cmp r3,#0
+ 557 009a 03D0     	 beq .L32
+ 192:../CanTpLite/Ctpl.c **** 	{
+ 193:../CanTpLite/Ctpl.c **** 		isFirstFrame=true;
+ 558              	 .loc 1 193 0
+ 559 009c 034B     	 ldr r3,.L34
+ 560 009e 0122     	 movs r2,#1
+ 561 00a0 1A70     	 strb r2,[r3]
+ 562 00a2 02E0     	 b .L26
+ 563              	.L32:
+ 194:../CanTpLite/Ctpl.c **** 	}
+ 195:../CanTpLite/Ctpl.c **** 	else
+ 196:../CanTpLite/Ctpl.c **** 	{
+ 197:../CanTpLite/Ctpl.c **** 		isFirstFrame = false;
+ 564              	 .loc 1 197 0
+ 565 00a4 014B     	 ldr r3,.L34
+ 566 00a6 0022     	 movs r2,#0
+ 567 00a8 1A70     	 strb r2,[r3]
+ 568              	.L26:
+ 198:../CanTpLite/Ctpl.c **** 	}
+ 199:../CanTpLite/Ctpl.c **** }
+ 569              	 .loc 1 199 0
+ 570 00aa 80BD     	 pop {r7,pc}
+ 571              	.L35:
+ 572              	 .align 2
+ 573              	.L34:
+ 574 00ac 00000000 	 .word isFirstFrame.6946
+ 575 00b0 00000000 	 .word message
+ 576 00b4 00000000 	 .word LengthOfFF
+ 577 00b8 25499224 	 .word 613566757
+ 578 00bc 00000000 	 .word NumbersOfCF
+ 579 00c0 00000000 	 .word Cptl_MultiFrameRxOnGoing
+ 580 00c4 00000000 	 .word SeqNrCnt
+ 581 00c8 00000000 	 .word Ctpl_CurrentTime
+ 582 00cc 00000000 	 .word Ctpl_LastFrameTimeOut
+ 583              	 .cfi_endproc
+ 584              	.LFE142:
+ 586              	 .section .text.Ctpl_GetRxData,"ax",%progbits
+ 587              	 .align 2
+ 588              	 .thumb
+ 589              	 .thumb_func
+ 591              	Ctpl_GetRxData:
+ 592              	.LFB143:
+ 200:../CanTpLite/Ctpl.c **** 
+ 201:../CanTpLite/Ctpl.c **** /*citeste cate 8 baiti din CAN*/
+ 202:../CanTpLite/Ctpl.c **** void Ctpl_GetRxData(void)
+ 203:../CanTpLite/Ctpl.c **** {
+ 593              	 .loc 1 203 0
+ 594              	 .cfi_startproc
+ 595              	 
+ 596              	 
+ 597 0000 80B5     	 push {r7,lr}
+ 598              	.LCFI27:
+ 599              	 .cfi_def_cfa_offset 8
+ 600              	 .cfi_offset 7,-8
+ 601              	 .cfi_offset 14,-4
+ 602 0002 00AF     	 add r7,sp,#0
+ 603              	.LCFI28:
+ 604              	 .cfi_def_cfa_register 7
+ 204:../CanTpLite/Ctpl.c **** 	Can_GetRxData((uint8_t*)&message);
+ 605              	 .loc 1 204 0
+ 606 0004 0148     	 ldr r0,.L37
+ 607 0006 FFF7FEFF 	 bl Can_GetRxData
+ 205:../CanTpLite/Ctpl.c **** }
+ 608              	 .loc 1 205 0
+ 609 000a 80BD     	 pop {r7,pc}
+ 610              	.L38:
+ 611              	 .align 2
+ 612              	.L37:
+ 613 000c 00000000 	 .word message
+ 614              	 .cfi_endproc
+ 615              	.LFE143:
+ 617              	 .section .text.Ctpl_ConsecutiveReading,"ax",%progbits
+ 618              	 .align 2
+ 619              	 .thumb
+ 620              	 .thumb_func
+ 622              	Ctpl_ConsecutiveReading:
+ 623              	.LFB144:
+ 206:../CanTpLite/Ctpl.c **** 
+ 207:../CanTpLite/Ctpl.c **** /*citim consecutiv frame`urile*/
+ 208:../CanTpLite/Ctpl.c **** static bool Ctpl_ConsecutiveReading(bool isFirstFrame)
+ 209:../CanTpLite/Ctpl.c **** {
+ 624              	 .loc 1 209 0
+ 625              	 .cfi_startproc
+ 626              	 
+ 627              	 
+ 628 0000 80B5     	 push {r7,lr}
+ 629              	.LCFI29:
+ 630              	 .cfi_def_cfa_offset 8
+ 631              	 .cfi_offset 7,-8
+ 632              	 .cfi_offset 14,-4
+ 633 0002 84B0     	 sub sp,sp,#16
+ 634              	.LCFI30:
+ 635              	 .cfi_def_cfa_offset 24
+ 636 0004 00AF     	 add r7,sp,#0
+ 637              	.LCFI31:
+ 638              	 .cfi_def_cfa_register 7
+ 639 0006 0346     	 mov r3,r0
+ 640 0008 FB71     	 strb r3,[r7,#7]
+ 210:../CanTpLite/Ctpl.c **** 	uint8_t i = 1;
+ 641              	 .loc 1 210 0
+ 642 000a 0123     	 movs r3,#1
+ 643 000c FB73     	 strb r3,[r7,#15]
+ 211:../CanTpLite/Ctpl.c **** 	bool endOfMessage = false;
+ 644              	 .loc 1 211 0
+ 645 000e 0023     	 movs r3,#0
+ 646 0010 BB73     	 strb r3,[r7,#14]
+ 212:../CanTpLite/Ctpl.c **** 
+ 213:../CanTpLite/Ctpl.c **** 	if(isFirstFrame)
+ 647              	 .loc 1 213 0
+ 648 0012 FB79     	 ldrb r3,[r7,#7]
+ 649 0014 002B     	 cmp r3,#0
+ 650 0016 01D0     	 beq .L40
+ 214:../CanTpLite/Ctpl.c **** 	{
+ 215:../CanTpLite/Ctpl.c **** 		i = 2;
+ 651              	 .loc 1 215 0
+ 652 0018 0223     	 movs r3,#2
+ 653 001a FB73     	 strb r3,[r7,#15]
+ 654              	.L40:
+ 216:../CanTpLite/Ctpl.c **** 	}
+ 217:../CanTpLite/Ctpl.c **** 	for(i;i<8;i++)
+ 655              	 .loc 1 217 0
+ 656 001c 29E0     	 b .L41
+ 657              	.L44:
+ 218:../CanTpLite/Ctpl.c **** 	{
+ 219:../CanTpLite/Ctpl.c **** 		DataCtpl[PozDataBuffer]=message[i];
+ 658              	 .loc 1 219 0
+ 659 001e 194B     	 ldr r3,.L46
+ 660 0020 1B68     	 ldr r3,[r3]
+ 661 0022 194A     	 ldr r2,.L46+4
+ 662 0024 1288     	 ldrh r2,[r2]
+ 663 0026 1344     	 add r3,r3,r2
+ 664 0028 FA7B     	 ldrb r2,[r7,#15]
+ 665 002a 1849     	 ldr r1,.L46+8
+ 666 002c 8A5C     	 ldrb r2,[r1,r2]
+ 667 002e 1A70     	 strb r2,[r3]
+ 220:../CanTpLite/Ctpl.c **** 		PozDataBuffer++;
+ 668              	 .loc 1 220 0
+ 669 0030 154B     	 ldr r3,.L46+4
+ 670 0032 1B88     	 ldrh r3,[r3]
+ 671 0034 0133     	 adds r3,r3,#1
+ 672 0036 9AB2     	 uxth r2,r3
+ 673 0038 134B     	 ldr r3,.L46+4
+ 674 003a 1A80     	 strh r2,[r3]
+ 221:../CanTpLite/Ctpl.c **** 		if(PozDataBuffer == LengthOfFF)
+ 675              	 .loc 1 221 0
+ 676 003c 124B     	 ldr r3,.L46+4
+ 677 003e 1A88     	 ldrh r2,[r3]
+ 678 0040 134B     	 ldr r3,.L46+12
+ 679 0042 1B88     	 ldrh r3,[r3]
+ 680 0044 9A42     	 cmp r2,r3
+ 681 0046 11D1     	 bne .L42
+ 682              	.LBB5:
+ 222:../CanTpLite/Ctpl.c **** 		{
+ 223:../CanTpLite/Ctpl.c **** 			Appl_RecFinishNotification(); // notific aplicatia ca a fost trimis tot mesajul
+ 683              	 .loc 1 223 0
+ 684 0048 FFF7FEFF 	 bl Appl_RecFinishNotification
+ 224:../CanTpLite/Ctpl.c **** 			Appl_RecStartNotification(PozDataBuffer); // trimitem lungimea bufferului catre aplicatie
+ 685              	 .loc 1 224 0
+ 686 004c 0E4B     	 ldr r3,.L46+4
+ 687 004e 1B88     	 ldrh r3,[r3]
+ 688 0050 1846     	 mov r0,r3
+ 689 0052 FFF7FEFF 	 bl Appl_RecStartNotification
+ 225:../CanTpLite/Ctpl.c **** 			endOfMessage = true;
+ 690              	 .loc 1 225 0
+ 691 0056 0123     	 movs r3,#1
+ 692 0058 BB73     	 strb r3,[r7,#14]
+ 226:../CanTpLite/Ctpl.c **** 			PozDataBuffer = 0;
+ 693              	 .loc 1 226 0
+ 694 005a 0B4B     	 ldr r3,.L46+4
+ 695 005c 0022     	 movs r2,#0
+ 696 005e 1A80     	 strh r2,[r3]
+ 227:../CanTpLite/Ctpl.c **** 			Cptl_MultiFrameRxOnGoing=false;
+ 697              	 .loc 1 227 0
+ 698 0060 0C4B     	 ldr r3,.L46+16
+ 699 0062 0022     	 movs r2,#0
+ 700 0064 1A70     	 strb r2,[r3]
+ 228:../CanTpLite/Ctpl.c **** 			Appl_RxNotification();
+ 701              	 .loc 1 228 0
+ 702 0066 FFF7FEFF 	 bl Appl_RxNotification
+ 229:../CanTpLite/Ctpl.c **** 			break;
+ 703              	 .loc 1 229 0
+ 704 006a 05E0     	 b .L43
+ 705              	.L42:
+ 706              	.LBE5:
+ 217:../CanTpLite/Ctpl.c **** 	{
+ 707              	 .loc 1 217 0
+ 708 006c FB7B     	 ldrb r3,[r7,#15]
+ 709 006e 0133     	 adds r3,r3,#1
+ 710 0070 FB73     	 strb r3,[r7,#15]
+ 711              	.L41:
+ 217:../CanTpLite/Ctpl.c **** 	{
+ 712              	 .loc 1 217 0 is_stmt 0 discriminator 1
+ 713 0072 FB7B     	 ldrb r3,[r7,#15]
+ 714 0074 072B     	 cmp r3,#7
+ 715 0076 D2D9     	 bls .L44
+ 716              	.L43:
+ 230:../CanTpLite/Ctpl.c **** 		}
+ 231:../CanTpLite/Ctpl.c **** 	}
+ 232:../CanTpLite/Ctpl.c **** 	return endOfMessage;
+ 717              	 .loc 1 232 0 is_stmt 1
+ 718 0078 BB7B     	 ldrb r3,[r7,#14]
+ 233:../CanTpLite/Ctpl.c **** }
+ 719              	 .loc 1 233 0
+ 720 007a 1846     	 mov r0,r3
+ 721 007c 1037     	 adds r7,r7,#16
+ 722              	.LCFI32:
+ 723              	 .cfi_def_cfa_offset 8
+ 724 007e BD46     	 mov sp,r7
+ 725              	.LCFI33:
+ 726              	 .cfi_def_cfa_register 13
+ 727              	 
+ 728 0080 80BD     	 pop {r7,pc}
+ 729              	.L47:
+ 730 0082 00BF     	 .align 2
+ 731              	.L46:
+ 732 0084 00000000 	 .word DataCtpl
+ 733 0088 00000000 	 .word PozDataBuffer
+ 734 008c 00000000 	 .word message
+ 735 0090 00000000 	 .word LengthOfFF
+ 736 0094 00000000 	 .word Cptl_MultiFrameRxOnGoing
+ 737              	 .cfi_endproc
+ 738              	.LFE144:
+ 740              	 .section .rodata
+ 741              	 .align 2
+ 742              	.LC0:
+ 743 0000 30       	 .byte 48
+ 744 0001 00       	 .byte 0
+ 745 0002 00       	 .byte 0
+ 746 0003 55       	 .byte 85
+ 747 0004 55       	 .byte 85
+ 748 0005 55       	 .byte 85
+ 749 0006 55       	 .byte 85
+ 750 0007 55       	 .byte 85
+ 751              	 .section .text.Ctpl_SendFlowControl,"ax",%progbits
+ 752              	 .align 2
+ 753              	 .thumb
+ 754              	 .thumb_func
+ 756              	Ctpl_SendFlowControl:
+ 757              	.LFB145:
+ 234:../CanTpLite/Ctpl.c **** 
+ 235:../CanTpLite/Ctpl.c **** /*Trimitem FC(30.00.00..),ca si o verificare pentru a continua transmisia*/
+ 236:../CanTpLite/Ctpl.c **** uint8_t Ctpl_SendFlowControl(void)
+ 237:../CanTpLite/Ctpl.c **** {
+ 758              	 .loc 1 237 0
+ 759              	 .cfi_startproc
+ 760              	 
+ 761              	 
+ 762 0000 80B5     	 push {r7,lr}
+ 763              	.LCFI34:
+ 764              	 .cfi_def_cfa_offset 8
+ 765              	 .cfi_offset 7,-8
+ 766              	 .cfi_offset 14,-4
+ 767 0002 84B0     	 sub sp,sp,#16
+ 768              	.LCFI35:
+ 769              	 .cfi_def_cfa_offset 24
+ 770 0004 00AF     	 add r7,sp,#0
+ 771              	.LCFI36:
+ 772              	 .cfi_def_cfa_register 7
+ 238:../CanTpLite/Ctpl.c **** 	uint8_t retVal;
+ 239:../CanTpLite/Ctpl.c **** 	uint8_t dat[8]={ 0x30, 0x00, 0x00, 0x55, 0x55, 0x55, 0x55, 0x55};
+ 773              	 .loc 1 239 0
+ 774 0006 104A     	 ldr r2,.L53
+ 775 0008 3B1D     	 adds r3,r7,#4
+ 776 000a 1068     	 ldr r0,[r2]
+ 777 000c 5168     	 ldr r1,[r2,#4]
+ 778 000e 03C3     	 stmia r3!,{r0,r1}
+ 240:../CanTpLite/Ctpl.c **** 	retVal = Can_SetTxData(dat);
+ 779              	 .loc 1 240 0
+ 780 0010 3B1D     	 adds r3,r7,#4
+ 781 0012 1846     	 mov r0,r3
+ 782 0014 FFF7FEFF 	 bl Can_SetTxData
+ 783 0018 0346     	 mov r3,r0
+ 784 001a FB73     	 strb r3,[r7,#15]
+ 241:../CanTpLite/Ctpl.c **** 	if (0 == retVal)
+ 785              	 .loc 1 241 0
+ 786 001c FB7B     	 ldrb r3,[r7,#15]
+ 787 001e 002B     	 cmp r3,#0
+ 788 0020 0CD1     	 bne .L49
+ 242:../CanTpLite/Ctpl.c **** 	{
+ 243:../CanTpLite/Ctpl.c **** 		Can_Transmit();
+ 789              	 .loc 1 243 0
+ 790 0022 FFF7FEFF 	 bl Can_Transmit
+ 244:../CanTpLite/Ctpl.c **** 		/* To implement a timeout handler instead of a simple while() */
+ 245:../CanTpLite/Ctpl.c **** 		while(!txNotif)
+ 791              	 .loc 1 245 0
+ 792 0026 02E0     	 b .L50
+ 793              	.L51:
+ 246:../CanTpLite/Ctpl.c **** 		{
+ 247:../CanTpLite/Ctpl.c **** 			// Do nothing; wait for object transmission success.
+ 248:../CanTpLite/Ctpl.c **** 			txNotif = false;
+ 794              	 .loc 1 248 0
+ 795 0028 084B     	 ldr r3,.L53+4
+ 796 002a 0022     	 movs r2,#0
+ 797 002c 1A70     	 strb r2,[r3]
+ 798              	.L50:
+ 245:../CanTpLite/Ctpl.c **** 		{
+ 799              	 .loc 1 245 0
+ 800 002e 074B     	 ldr r3,.L53+4
+ 801 0030 1B78     	 ldrb r3,[r3]
+ 802 0032 83F00103 	 eor r3,r3,#1
+ 803 0036 DBB2     	 uxtb r3,r3
+ 804 0038 002B     	 cmp r3,#0
+ 805 003a F5D1     	 bne .L51
+ 806              	.L49:
+ 249:../CanTpLite/Ctpl.c **** 		}
+ 250:../CanTpLite/Ctpl.c **** 	}
+ 251:../CanTpLite/Ctpl.c **** 	return retVal;
+ 807              	 .loc 1 251 0
+ 808 003c FB7B     	 ldrb r3,[r7,#15]
+ 252:../CanTpLite/Ctpl.c **** }
+ 809              	 .loc 1 252 0
+ 810 003e 1846     	 mov r0,r3
+ 811 0040 1037     	 adds r7,r7,#16
+ 812              	.LCFI37:
+ 813              	 .cfi_def_cfa_offset 8
+ 814 0042 BD46     	 mov sp,r7
+ 815              	.LCFI38:
+ 816              	 .cfi_def_cfa_register 13
+ 817              	 
+ 818 0044 80BD     	 pop {r7,pc}
+ 819              	.L54:
+ 820 0046 00BF     	 .align 2
+ 821              	.L53:
+ 822 0048 00000000 	 .word .LC0
+ 823 004c 00000000 	 .word txNotif
+ 824              	 .cfi_endproc
+ 825              	.LFE145:
+ 827              	 .section .data.isFirstFrame.6946,"aw",%progbits
+ 830              	isFirstFrame.6946:
+ 831 0000 01       	 .byte 1
+ 832              	 .text
+ 833              	.Letext0:
+ 834              	 .file 2 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 835              	 .file 3 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\stdint.h"
+ 836              	 .file 4 "D:/practica/proiect/DaveCan/Libraries/CMSIS/Include/core_cm4.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 Ctpl.c
+                            *COM*:00000004 DataCtpl
+                            *COM*:00000002 PozDataBuffer
+                            *COM*:00000008 message
+                            *COM*:00000001 state
+    {standard input}:26     .bss.rxNotif:00000000 rxNotif
+    {standard input}:27     .bss.rxNotif:00000000 $d
+                            *COM*:00000001 NumbersOfCF
+                            *COM*:00000002 LengthOfFF
+    {standard input}:33     .bss.txNotif:00000000 txNotif
+    {standard input}:34     .bss.txNotif:00000000 $d
+                            *COM*:00000001 SeqNrCnt
+                            *COM*:00000004 Ctpl_LastFrameTimeOut
+                            *COM*:00000004 Ctpl_CurrentTime
+    {standard input}:41     .bss.Cptl_MultiFrameRxOnGoing:00000000 Cptl_MultiFrameRxOnGoing
+    {standard input}:42     .bss.Cptl_MultiFrameRxOnGoing:00000000 $d
+    {standard input}:44     .text.Ctpl_Init:00000000 $t
+    {standard input}:49     .text.Ctpl_Init:00000000 Ctpl_Init
+    {standard input}:131    .text.Ctpl_Init:0000005c $d
+    {standard input}:144    .text.Ctpl_RxNotification:00000000 $t
+    {standard input}:149    .text.Ctpl_RxNotification:00000000 Ctpl_RxNotification
+    {standard input}:180    .text.Ctpl_RxNotification:00000014 $d
+    {standard input}:185    .text.Ctpl_TxNotification:00000000 $t
+    {standard input}:190    .text.Ctpl_TxNotification:00000000 Ctpl_TxNotification
+    {standard input}:221    .text.Ctpl_TxNotification:00000014 $d
+    {standard input}:226    .text.Ctpl_MainFunction:00000000 $t
+    {standard input}:231    .text.Ctpl_MainFunction:00000000 Ctpl_MainFunction
+    {standard input}:591    .text.Ctpl_GetRxData:00000000 Ctpl_GetRxData
+    {standard input}:378    .text.Ctpl_SingleFrameHandler:00000000 Ctpl_SingleFrameHandler
+    {standard input}:453    .text.Ctpl_MultiframeHandler:00000000 Ctpl_MultiframeHandler
+    {standard input}:278    .text.Ctpl_MainFunction:00000034 $d
+    {standard input}:285    .text.Ctpl_SendData:00000000 $t
+    {standard input}:290    .text.Ctpl_SendData:00000000 Ctpl_SendData
+    {standard input}:374    .text.Ctpl_SingleFrameHandler:00000000 $t
+    {standard input}:443    .text.Ctpl_SingleFrameHandler:00000040 $d
+    {standard input}:449    .text.Ctpl_MultiframeHandler:00000000 $t
+    {standard input}:756    .text.Ctpl_SendFlowControl:00000000 Ctpl_SendFlowControl
+    {standard input}:622    .text.Ctpl_ConsecutiveReading:00000000 Ctpl_ConsecutiveReading
+    {standard input}:574    .text.Ctpl_MultiframeHandler:000000ac $d
+    {standard input}:830    .data.isFirstFrame.6946:00000000 isFirstFrame.6946
+    {standard input}:587    .text.Ctpl_GetRxData:00000000 $t
+    {standard input}:613    .text.Ctpl_GetRxData:0000000c $d
+    {standard input}:618    .text.Ctpl_ConsecutiveReading:00000000 $t
+    {standard input}:732    .text.Ctpl_ConsecutiveReading:00000084 $d
+    {standard input}:741    .rodata:00000000 $d
+    {standard input}:752    .text.Ctpl_SendFlowControl:00000000 $t
+    {standard input}:822    .text.Ctpl_SendFlowControl:00000048 $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+Appl_GetDataPointer
+SYSTIMER_GetTime
+Can_SetTxData
+Can_Transmit
+Appl_RxNotification
+Appl_ErrorNotification
+Can_GetRxData
+Appl_RecFinishNotification
+Appl_RecStartNotification

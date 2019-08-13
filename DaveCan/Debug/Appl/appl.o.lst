@@ -1,0 +1,822 @@
+   1              	 .syntax unified
+   2              	 .cpu cortex-m4
+   3              	 .eabi_attribute 27,3
+   4              	 .fpu fpv4-sp-d16
+   5              	 .eabi_attribute 20,1
+   6              	 .eabi_attribute 21,1
+   7              	 .eabi_attribute 23,3
+   8              	 .eabi_attribute 24,1
+   9              	 .eabi_attribute 25,1
+  10              	 .eabi_attribute 26,1
+  11              	 .eabi_attribute 30,6
+  12              	 .eabi_attribute 34,1
+  13              	 .eabi_attribute 18,4
+  14              	 .thumb
+  15              	 .file "appl.c"
+  16              	 .text
+  17              	.Ltext0:
+  18              	 .cfi_sections .debug_frame
+  19              	 .comm data,4096,4
+  20              	 .comm len,4,4
+  21              	 .comm dataReceived,1,1
+  22              	 .comm status_notification,1,1
+  23              	 .section .bss.table,"aw",%nobits
+  24              	 .align 2
+  27              	table:
+  28 0000 00000000 	 .space 1024
+  28      00000000 
+  28      00000000 
+  28      00000000 
+  28      00000000 
+  29              	 .section .bss.have_table,"aw",%nobits
+  30              	 .align 2
+  33              	have_table:
+  34 0000 00000000 	 .space 4
+  35              	 .comm ok,1,1
+  36              	 .section .text.rc_crc32,"ax",%progbits
+  37              	 .align 2
+  38              	 .global rc_crc32
+  39              	 .thumb
+  40              	 .thumb_func
+  42              	rc_crc32:
+  43              	.LFB0:
+  44              	 .file 1 "../Appl/appl.c"
+   1:../Appl/appl.c **** /*
+   2:../Appl/appl.c ****  * appl.c
+   3:../Appl/appl.c ****  *
+   4:../Appl/appl.c ****  *  Created on: Jul 23, 2019
+   5:../Appl/appl.c ****  *      Author: uia94406
+   6:../Appl/appl.c ****  */
+   7:../Appl/appl.c **** 
+   8:../Appl/appl.c **** #include "appl.h"
+   9:../Appl/appl.c **** #include "Ctpl.h"
+  10:../Appl/appl.c **** 
+  11:../Appl/appl.c **** 
+  12:../Appl/appl.c **** uint8_t data[BUFFER_SIZE];//bufferu de salvare
+  13:../Appl/appl.c **** 
+  14:../Appl/appl.c **** uint32_t len;
+  15:../Appl/appl.c **** 
+  16:../Appl/appl.c **** uint8_t dataReceived;
+  17:../Appl/appl.c **** uint8_t status_notification;
+  18:../Appl/appl.c **** static uint32_t table[256];
+  19:../Appl/appl.c **** static int have_table ;
+  20:../Appl/appl.c **** uint8_t ok;
+  21:../Appl/appl.c **** uint32_t rc_crc32(uint32_t crc, const uint8_t *buf, uint32_t len)
+  22:../Appl/appl.c **** {
+  45              	 .loc 1 22 0
+  46              	 .cfi_startproc
+  47              	 
+  48              	 
+  49              	 
+  50 0000 80B4     	 push {r7}
+  51              	.LCFI0:
+  52              	 .cfi_def_cfa_offset 4
+  53              	 .cfi_offset 7,-4
+  54 0002 89B0     	 sub sp,sp,#36
+  55              	.LCFI1:
+  56              	 .cfi_def_cfa_offset 40
+  57 0004 00AF     	 add r7,sp,#0
+  58              	.LCFI2:
+  59              	 .cfi_def_cfa_register 7
+  60 0006 F860     	 str r0,[r7,#12]
+  61 0008 B960     	 str r1,[r7,#8]
+  62 000a 7A60     	 str r2,[r7,#4]
+  23:../Appl/appl.c **** 	uint8_t octet;
+  24:../Appl/appl.c **** 	const uint8_t *p, *q;
+  25:../Appl/appl.c **** 	crc = ~crc;
+  63              	 .loc 1 25 0
+  64 000c FB68     	 ldr r3,[r7,#12]
+  65 000e DB43     	 mvns r3,r3
+  66 0010 FB60     	 str r3,[r7,#12]
+  26:../Appl/appl.c **** 	q = buf + len;
+  67              	 .loc 1 26 0
+  68 0012 BA68     	 ldr r2,[r7,#8]
+  69 0014 7B68     	 ldr r3,[r7,#4]
+  70 0016 1344     	 add r3,r3,r2
+  71 0018 BB61     	 str r3,[r7,#24]
+  27:../Appl/appl.c **** 	for (p = buf; p < q; p++) {
+  72              	 .loc 1 27 0
+  73 001a BB68     	 ldr r3,[r7,#8]
+  74 001c FB61     	 str r3,[r7,#28]
+  75 001e 0FE0     	 b .L2
+  76              	.L3:
+  28:../Appl/appl.c **** 		octet = p;  /* Cast to unsigned octet. */
+  77              	 .loc 1 28 0 discriminator 3
+  78 0020 FB69     	 ldr r3,[r7,#28]
+  79 0022 FB75     	 strb r3,[r7,#23]
+  29:../Appl/appl.c **** 		crc = (crc >> 8) ^ table[(crc & 0xff) ^ octet];
+  80              	 .loc 1 29 0 discriminator 3
+  81 0024 FB68     	 ldr r3,[r7,#12]
+  82 0026 1A0A     	 lsrs r2,r3,#8
+  83 0028 FB68     	 ldr r3,[r7,#12]
+  84 002a D9B2     	 uxtb r1,r3
+  85 002c FB7D     	 ldrb r3,[r7,#23]
+  86 002e 4B40     	 eors r3,r3,r1
+  87 0030 0949     	 ldr r1,.L5
+  88 0032 51F82330 	 ldr r3,[r1,r3,lsl#2]
+  89 0036 5340     	 eors r3,r3,r2
+  90 0038 FB60     	 str r3,[r7,#12]
+  27:../Appl/appl.c **** 	for (p = buf; p < q; p++) {
+  91              	 .loc 1 27 0 discriminator 3
+  92 003a FB69     	 ldr r3,[r7,#28]
+  93 003c 0133     	 adds r3,r3,#1
+  94 003e FB61     	 str r3,[r7,#28]
+  95              	.L2:
+  27:../Appl/appl.c **** 	for (p = buf; p < q; p++) {
+  96              	 .loc 1 27 0 is_stmt 0 discriminator 1
+  97 0040 FA69     	 ldr r2,[r7,#28]
+  98 0042 BB69     	 ldr r3,[r7,#24]
+  99 0044 9A42     	 cmp r2,r3
+ 100 0046 EBD3     	 bcc .L3
+  30:../Appl/appl.c **** 	}
+  31:../Appl/appl.c **** 	return ~crc;
+ 101              	 .loc 1 31 0 is_stmt 1
+ 102 0048 FB68     	 ldr r3,[r7,#12]
+ 103 004a DB43     	 mvns r3,r3
+  32:../Appl/appl.c **** }
+ 104              	 .loc 1 32 0
+ 105 004c 1846     	 mov r0,r3
+ 106 004e 2437     	 adds r7,r7,#36
+ 107              	.LCFI3:
+ 108              	 .cfi_def_cfa_offset 4
+ 109 0050 BD46     	 mov sp,r7
+ 110              	.LCFI4:
+ 111              	 .cfi_def_cfa_register 13
+ 112              	 
+ 113 0052 5DF8047B 	 ldr r7,[sp],#4
+ 114              	.LCFI5:
+ 115              	 .cfi_restore 7
+ 116              	 .cfi_def_cfa_offset 0
+ 117 0056 7047     	 bx lr
+ 118              	.L6:
+ 119              	 .align 2
+ 120              	.L5:
+ 121 0058 00000000 	 .word table
+ 122              	 .cfi_endproc
+ 123              	.LFE0:
+ 125              	 .section .text.Appl_Init,"ax",%progbits
+ 126              	 .align 2
+ 127              	 .global Appl_Init
+ 128              	 .thumb
+ 129              	 .thumb_func
+ 131              	Appl_Init:
+ 132              	.LFB1:
+  33:../Appl/appl.c **** 
+  34:../Appl/appl.c **** void Appl_Init(void)
+  35:../Appl/appl.c **** {
+ 133              	 .loc 1 35 0
+ 134              	 .cfi_startproc
+ 135              	 
+ 136              	 
+ 137              	 
+ 138 0000 80B4     	 push {r7}
+ 139              	.LCFI6:
+ 140              	 .cfi_def_cfa_offset 4
+ 141              	 .cfi_offset 7,-4
+ 142 0002 85B0     	 sub sp,sp,#20
+ 143              	.LCFI7:
+ 144              	 .cfi_def_cfa_offset 24
+ 145 0004 00AF     	 add r7,sp,#0
+ 146              	.LCFI8:
+ 147              	 .cfi_def_cfa_register 7
+  36:../Appl/appl.c **** 	uint32_t rem;
+  37:../Appl/appl.c **** 	int i, j;
+  38:../Appl/appl.c **** 	len=BUFFER_SIZE;
+ 148              	 .loc 1 38 0
+ 149 0006 2A4B     	 ldr r3,.L17
+ 150 0008 4FF48052 	 mov r2,#4096
+ 151 000c 1A60     	 str r2,[r3]
+  39:../Appl/appl.c **** 	dataReceived=0;
+ 152              	 .loc 1 39 0
+ 153 000e 294B     	 ldr r3,.L17+4
+ 154 0010 0022     	 movs r2,#0
+ 155 0012 1A70     	 strb r2,[r3]
+  40:../Appl/appl.c **** 	status_notification=0;
+ 156              	 .loc 1 40 0
+ 157 0014 284B     	 ldr r3,.L17+8
+ 158 0016 0022     	 movs r2,#0
+ 159 0018 1A70     	 strb r2,[r3]
+  41:../Appl/appl.c **** 	have_table = 0;
+ 160              	 .loc 1 41 0
+ 161 001a 284B     	 ldr r3,.L17+12
+ 162 001c 0022     	 movs r2,#0
+ 163 001e 1A60     	 str r2,[r3]
+  42:../Appl/appl.c **** 	ok=0;
+ 164              	 .loc 1 42 0
+ 165 0020 274B     	 ldr r3,.L17+16
+ 166 0022 0022     	 movs r2,#0
+ 167 0024 1A70     	 strb r2,[r3]
+  43:../Appl/appl.c **** 	for(i=0;i<BUFFER_SIZE;i++)
+ 168              	 .loc 1 43 0
+ 169 0026 0023     	 movs r3,#0
+ 170 0028 BB60     	 str r3,[r7,#8]
+ 171 002a 07E0     	 b .L8
+ 172              	.L9:
+  44:../Appl/appl.c **** 	{
+  45:../Appl/appl.c **** 		data[i]=0;
+ 173              	 .loc 1 45 0 discriminator 3
+ 174 002c 254A     	 ldr r2,.L17+20
+ 175 002e BB68     	 ldr r3,[r7,#8]
+ 176 0030 1344     	 add r3,r3,r2
+ 177 0032 0022     	 movs r2,#0
+ 178 0034 1A70     	 strb r2,[r3]
+  43:../Appl/appl.c **** 	for(i=0;i<BUFFER_SIZE;i++)
+ 179              	 .loc 1 43 0 discriminator 3
+ 180 0036 BB68     	 ldr r3,[r7,#8]
+ 181 0038 0133     	 adds r3,r3,#1
+ 182 003a BB60     	 str r3,[r7,#8]
+ 183              	.L8:
+  43:../Appl/appl.c **** 	for(i=0;i<BUFFER_SIZE;i++)
+ 184              	 .loc 1 43 0 is_stmt 0 discriminator 1
+ 185 003c BB68     	 ldr r3,[r7,#8]
+ 186 003e B3F5805F 	 cmp r3,#4096
+ 187 0042 F3D3     	 bcc .L9
+  46:../Appl/appl.c **** 	}
+  47:../Appl/appl.c **** 
+  48:../Appl/appl.c **** 	/* This check is not thread safe; there is no mutex. */
+  49:../Appl/appl.c **** 	if (have_table == 0) {
+ 188              	 .loc 1 49 0 is_stmt 1
+ 189 0044 1D4B     	 ldr r3,.L17+12
+ 190 0046 1B68     	 ldr r3,[r3]
+ 191 0048 002B     	 cmp r3,#0
+ 192 004a 2BD1     	 bne .L7
+  50:../Appl/appl.c **** 		/* Calculate CRC table. */
+  51:../Appl/appl.c **** 		for (i = 0; i < 256; i++) {
+ 193              	 .loc 1 51 0
+ 194 004c 0023     	 movs r3,#0
+ 195 004e BB60     	 str r3,[r7,#8]
+ 196 0050 22E0     	 b .L11
+ 197              	.L16:
+  52:../Appl/appl.c **** 			rem = i;  /* remainder from polynomial division */
+ 198              	 .loc 1 52 0
+ 199 0052 BB68     	 ldr r3,[r7,#8]
+ 200 0054 FB60     	 str r3,[r7,#12]
+  53:../Appl/appl.c **** 			for (j = 0; j < 8; j++) {
+ 201              	 .loc 1 53 0
+ 202 0056 0023     	 movs r3,#0
+ 203 0058 7B60     	 str r3,[r7,#4]
+ 204 005a 12E0     	 b .L12
+ 205              	.L15:
+  54:../Appl/appl.c **** 				if (rem & 1) {
+ 206              	 .loc 1 54 0
+ 207 005c FB68     	 ldr r3,[r7,#12]
+ 208 005e 03F00103 	 and r3,r3,#1
+ 209 0062 002B     	 cmp r3,#0
+ 210 0064 07D0     	 beq .L13
+  55:../Appl/appl.c **** 					rem >>= 1;
+ 211              	 .loc 1 55 0
+ 212 0066 FB68     	 ldr r3,[r7,#12]
+ 213 0068 5B08     	 lsrs r3,r3,#1
+ 214 006a FB60     	 str r3,[r7,#12]
+  56:../Appl/appl.c **** 					rem ^= 0xedb88320;
+ 215              	 .loc 1 56 0
+ 216 006c FA68     	 ldr r2,[r7,#12]
+ 217 006e 164B     	 ldr r3,.L17+24
+ 218 0070 5340     	 eors r3,r3,r2
+ 219 0072 FB60     	 str r3,[r7,#12]
+ 220 0074 02E0     	 b .L14
+ 221              	.L13:
+  57:../Appl/appl.c **** 				} else
+  58:../Appl/appl.c **** 					rem >>= 1;
+ 222              	 .loc 1 58 0
+ 223 0076 FB68     	 ldr r3,[r7,#12]
+ 224 0078 5B08     	 lsrs r3,r3,#1
+ 225 007a FB60     	 str r3,[r7,#12]
+ 226              	.L14:
+  53:../Appl/appl.c **** 				if (rem & 1) {
+ 227              	 .loc 1 53 0 discriminator 2
+ 228 007c 7B68     	 ldr r3,[r7,#4]
+ 229 007e 0133     	 adds r3,r3,#1
+ 230 0080 7B60     	 str r3,[r7,#4]
+ 231              	.L12:
+  53:../Appl/appl.c **** 				if (rem & 1) {
+ 232              	 .loc 1 53 0 is_stmt 0 discriminator 1
+ 233 0082 7B68     	 ldr r3,[r7,#4]
+ 234 0084 072B     	 cmp r3,#7
+ 235 0086 E9DD     	 ble .L15
+  59:../Appl/appl.c **** 			}
+  60:../Appl/appl.c **** 			table[i] = rem;
+ 236              	 .loc 1 60 0 is_stmt 1 discriminator 2
+ 237 0088 1049     	 ldr r1,.L17+28
+ 238 008a BB68     	 ldr r3,[r7,#8]
+ 239 008c FA68     	 ldr r2,[r7,#12]
+ 240 008e 41F82320 	 str r2,[r1,r3,lsl#2]
+  51:../Appl/appl.c **** 			rem = i;  /* remainder from polynomial division */
+ 241              	 .loc 1 51 0 discriminator 2
+ 242 0092 BB68     	 ldr r3,[r7,#8]
+ 243 0094 0133     	 adds r3,r3,#1
+ 244 0096 BB60     	 str r3,[r7,#8]
+ 245              	.L11:
+  51:../Appl/appl.c **** 			rem = i;  /* remainder from polynomial division */
+ 246              	 .loc 1 51 0 is_stmt 0 discriminator 1
+ 247 0098 BB68     	 ldr r3,[r7,#8]
+ 248 009a FF2B     	 cmp r3,#255
+ 249 009c D9DD     	 ble .L16
+  61:../Appl/appl.c **** 		}
+  62:../Appl/appl.c **** 		have_table = 1;
+ 250              	 .loc 1 62 0 is_stmt 1
+ 251 009e 074B     	 ldr r3,.L17+12
+ 252 00a0 0122     	 movs r2,#1
+ 253 00a2 1A60     	 str r2,[r3]
+ 254              	.L7:
+  63:../Appl/appl.c **** 	}
+  64:../Appl/appl.c **** }
+ 255              	 .loc 1 64 0
+ 256 00a4 1437     	 adds r7,r7,#20
+ 257              	.LCFI9:
+ 258              	 .cfi_def_cfa_offset 4
+ 259 00a6 BD46     	 mov sp,r7
+ 260              	.LCFI10:
+ 261              	 .cfi_def_cfa_register 13
+ 262              	 
+ 263 00a8 5DF8047B 	 ldr r7,[sp],#4
+ 264              	.LCFI11:
+ 265              	 .cfi_restore 7
+ 266              	 .cfi_def_cfa_offset 0
+ 267 00ac 7047     	 bx lr
+ 268              	.L18:
+ 269 00ae 00BF     	 .align 2
+ 270              	.L17:
+ 271 00b0 00000000 	 .word len
+ 272 00b4 00000000 	 .word dataReceived
+ 273 00b8 00000000 	 .word status_notification
+ 274 00bc 00000000 	 .word have_table
+ 275 00c0 00000000 	 .word ok
+ 276 00c4 00000000 	 .word data
+ 277 00c8 2083B8ED 	 .word -306674912
+ 278 00cc 00000000 	 .word table
+ 279              	 .cfi_endproc
+ 280              	.LFE1:
+ 282              	 .section .text.Appl_MainFunction,"ax",%progbits
+ 283              	 .align 2
+ 284              	 .global Appl_MainFunction
+ 285              	 .thumb
+ 286              	 .thumb_func
+ 288              	Appl_MainFunction:
+ 289              	.LFB2:
+  65:../Appl/appl.c **** 
+  66:../Appl/appl.c **** void Appl_MainFunction(void)
+  67:../Appl/appl.c **** {
+ 290              	 .loc 1 67 0
+ 291              	 .cfi_startproc
+ 292              	 
+ 293              	 
+ 294 0000 80B5     	 push {r7,lr}
+ 295              	.LCFI12:
+ 296              	 .cfi_def_cfa_offset 8
+ 297              	 .cfi_offset 7,-8
+ 298              	 .cfi_offset 14,-4
+ 299 0002 84B0     	 sub sp,sp,#16
+ 300              	.LCFI13:
+ 301              	 .cfi_def_cfa_offset 24
+ 302 0004 00AF     	 add r7,sp,#0
+ 303              	.LCFI14:
+ 304              	 .cfi_def_cfa_register 7
+  68:../Appl/appl.c **** 	uint32_t volatile crc=0;
+ 305              	 .loc 1 68 0
+ 306 0006 0023     	 movs r3,#0
+ 307 0008 BB60     	 str r3,[r7,#8]
+  69:../Appl/appl.c **** 	uint8_t tempData[8]={0};
+ 308              	 .loc 1 69 0
+ 309 000a 0023     	 movs r3,#0
+ 310 000c 3B60     	 str r3,[r7]
+ 311 000e 0023     	 movs r3,#0
+ 312 0010 7B60     	 str r3,[r7,#4]
+  70:../Appl/appl.c **** 	if(dataReceived == 1u)
+ 313              	 .loc 1 70 0
+ 314 0012 194B     	 ldr r3,.L24
+ 315 0014 1B78     	 ldrb r3,[r3]
+ 316 0016 012B     	 cmp r3,#1
+ 317 0018 24D1     	 bne .L20
+ 318              	.LBB2:
+  71:../Appl/appl.c **** 	{
+  72:../Appl/appl.c **** 		crc=rc_crc32(0,data,len);
+ 319              	 .loc 1 72 0
+ 320 001a 184B     	 ldr r3,.L24+4
+ 321 001c 1B68     	 ldr r3,[r3]
+ 322 001e 0020     	 movs r0,#0
+ 323 0020 1749     	 ldr r1,.L24+8
+ 324 0022 1A46     	 mov r2,r3
+ 325 0024 FFF7FEFF 	 bl rc_crc32
+ 326 0028 0346     	 mov r3,r0
+ 327 002a BB60     	 str r3,[r7,#8]
+  73:../Appl/appl.c **** 		dataReceived=0u;
+ 328              	 .loc 1 73 0
+ 329 002c 124B     	 ldr r3,.L24
+ 330 002e 0022     	 movs r2,#0
+ 331 0030 1A70     	 strb r2,[r3]
+  74:../Appl/appl.c **** 
+  75:../Appl/appl.c **** 		//data should be put on the CAN now
+  76:../Appl/appl.c **** 		//copy crc to tempData
+  77:../Appl/appl.c **** 		uint8_t i=3;
+ 332              	 .loc 1 77 0
+ 333 0032 0323     	 movs r3,#3
+ 334 0034 FB73     	 strb r3,[r7,#15]
+  78:../Appl/appl.c **** 		while(crc!=0)
+ 335              	 .loc 1 78 0
+ 336 0036 0DE0     	 b .L21
+ 337              	.L22:
+  79:../Appl/appl.c **** 		{
+  80:../Appl/appl.c **** 			tempData[i]=crc;
+ 338              	 .loc 1 80 0
+ 339 0038 FB7B     	 ldrb r3,[r7,#15]
+ 340 003a BA68     	 ldr r2,[r7,#8]
+ 341 003c D2B2     	 uxtb r2,r2
+ 342 003e 07F11001 	 add r1,r7,#16
+ 343 0042 0B44     	 add r3,r3,r1
+ 344 0044 03F8102C 	 strb r2,[r3,#-16]
+  81:../Appl/appl.c **** 			crc = crc >> 8;
+ 345              	 .loc 1 81 0
+ 346 0048 BB68     	 ldr r3,[r7,#8]
+ 347 004a 1B0A     	 lsrs r3,r3,#8
+ 348 004c BB60     	 str r3,[r7,#8]
+  82:../Appl/appl.c **** 			i--;
+ 349              	 .loc 1 82 0
+ 350 004e FB7B     	 ldrb r3,[r7,#15]
+ 351 0050 013B     	 subs r3,r3,#1
+ 352 0052 FB73     	 strb r3,[r7,#15]
+ 353              	.L21:
+  78:../Appl/appl.c **** 		{
+ 354              	 .loc 1 78 0
+ 355 0054 BB68     	 ldr r3,[r7,#8]
+ 356 0056 002B     	 cmp r3,#0
+ 357 0058 EED1     	 bne .L22
+  83:../Appl/appl.c **** 		}
+  84:../Appl/appl.c **** 
+  85:../Appl/appl.c **** 		Ctpl_SendData(&tempData,4);
+ 358              	 .loc 1 85 0
+ 359 005a 3B46     	 mov r3,r7
+ 360 005c 1846     	 mov r0,r3
+ 361 005e 0421     	 movs r1,#4
+ 362 0060 FFF7FEFF 	 bl Ctpl_SendData
+ 363              	.L20:
+ 364              	.LBE2:
+  86:../Appl/appl.c **** 	}
+  87:../Appl/appl.c **** 
+  88:../Appl/appl.c **** 	if(status_notification==1)
+ 365              	 .loc 1 88 0
+ 366 0064 074B     	 ldr r3,.L24+12
+ 367 0066 1B78     	 ldrb r3,[r3]
+ 368 0068 012B     	 cmp r3,#1
+ 369 006a 01D1     	 bne .L19
+  89:../Appl/appl.c **** 	{
+  90:../Appl/appl.c **** 		Appl_RxNotification();
+ 370              	 .loc 1 90 0
+ 371 006c FFF7FEFF 	 bl Appl_RxNotification
+ 372              	.L19:
+  91:../Appl/appl.c **** 	}
+  92:../Appl/appl.c **** 
+  93:../Appl/appl.c **** 
+  94:../Appl/appl.c **** }
+ 373              	 .loc 1 94 0
+ 374 0070 1037     	 adds r7,r7,#16
+ 375              	.LCFI15:
+ 376              	 .cfi_def_cfa_offset 8
+ 377 0072 BD46     	 mov sp,r7
+ 378              	.LCFI16:
+ 379              	 .cfi_def_cfa_register 13
+ 380              	 
+ 381 0074 80BD     	 pop {r7,pc}
+ 382              	.L25:
+ 383 0076 00BF     	 .align 2
+ 384              	.L24:
+ 385 0078 00000000 	 .word dataReceived
+ 386 007c 00000000 	 .word len
+ 387 0080 00000000 	 .word data
+ 388 0084 00000000 	 .word status_notification
+ 389              	 .cfi_endproc
+ 390              	.LFE2:
+ 392              	 .section .text.Appl_GetDataPointer,"ax",%progbits
+ 393              	 .align 2
+ 394              	 .global Appl_GetDataPointer
+ 395              	 .thumb
+ 396              	 .thumb_func
+ 398              	Appl_GetDataPointer:
+ 399              	.LFB3:
+  95:../Appl/appl.c **** 
+  96:../Appl/appl.c **** uint8_t* Appl_GetDataPointer(void)
+  97:../Appl/appl.c **** {
+ 400              	 .loc 1 97 0
+ 401              	 .cfi_startproc
+ 402              	 
+ 403              	 
+ 404              	 
+ 405 0000 80B4     	 push {r7}
+ 406              	.LCFI17:
+ 407              	 .cfi_def_cfa_offset 4
+ 408              	 .cfi_offset 7,-4
+ 409 0002 00AF     	 add r7,sp,#0
+ 410              	.LCFI18:
+ 411              	 .cfi_def_cfa_register 7
+  98:../Appl/appl.c **** 	return &data[0];
+ 412              	 .loc 1 98 0
+ 413 0004 024B     	 ldr r3,.L28
+  99:../Appl/appl.c **** }
+ 414              	 .loc 1 99 0
+ 415 0006 1846     	 mov r0,r3
+ 416 0008 BD46     	 mov sp,r7
+ 417              	.LCFI19:
+ 418              	 .cfi_def_cfa_register 13
+ 419              	 
+ 420 000a 5DF8047B 	 ldr r7,[sp],#4
+ 421              	.LCFI20:
+ 422              	 .cfi_restore 7
+ 423              	 .cfi_def_cfa_offset 0
+ 424 000e 7047     	 bx lr
+ 425              	.L29:
+ 426              	 .align 2
+ 427              	.L28:
+ 428 0010 00000000 	 .word data
+ 429              	 .cfi_endproc
+ 430              	.LFE3:
+ 432              	 .section .text.Appl_RecStartNotification,"ax",%progbits
+ 433              	 .align 2
+ 434              	 .global Appl_RecStartNotification
+ 435              	 .thumb
+ 436              	 .thumb_func
+ 438              	Appl_RecStartNotification:
+ 439              	.LFB4:
+ 100:../Appl/appl.c **** 
+ 101:../Appl/appl.c **** void Appl_RecStartNotification(uint32_t receivedLenght)
+ 102:../Appl/appl.c **** {
+ 440              	 .loc 1 102 0
+ 441              	 .cfi_startproc
+ 442              	 
+ 443              	 
+ 444              	 
+ 445 0000 80B4     	 push {r7}
+ 446              	.LCFI21:
+ 447              	 .cfi_def_cfa_offset 4
+ 448              	 .cfi_offset 7,-4
+ 449 0002 83B0     	 sub sp,sp,#12
+ 450              	.LCFI22:
+ 451              	 .cfi_def_cfa_offset 16
+ 452 0004 00AF     	 add r7,sp,#0
+ 453              	.LCFI23:
+ 454              	 .cfi_def_cfa_register 7
+ 455 0006 7860     	 str r0,[r7,#4]
+ 103:../Appl/appl.c **** 	//should check if lenght is the same
+ 104:../Appl/appl.c **** 	len=receivedLenght;
+ 456              	 .loc 1 104 0
+ 457 0008 034A     	 ldr r2,.L31
+ 458 000a 7B68     	 ldr r3,[r7,#4]
+ 459 000c 1360     	 str r3,[r2]
+ 105:../Appl/appl.c **** }
+ 460              	 .loc 1 105 0
+ 461 000e 0C37     	 adds r7,r7,#12
+ 462              	.LCFI24:
+ 463              	 .cfi_def_cfa_offset 4
+ 464 0010 BD46     	 mov sp,r7
+ 465              	.LCFI25:
+ 466              	 .cfi_def_cfa_register 13
+ 467              	 
+ 468 0012 5DF8047B 	 ldr r7,[sp],#4
+ 469              	.LCFI26:
+ 470              	 .cfi_restore 7
+ 471              	 .cfi_def_cfa_offset 0
+ 472 0016 7047     	 bx lr
+ 473              	.L32:
+ 474              	 .align 2
+ 475              	.L31:
+ 476 0018 00000000 	 .word len
+ 477              	 .cfi_endproc
+ 478              	.LFE4:
+ 480              	 .section .text.Appl_RecFinishNotification,"ax",%progbits
+ 481              	 .align 2
+ 482              	 .global Appl_RecFinishNotification
+ 483              	 .thumb
+ 484              	 .thumb_func
+ 486              	Appl_RecFinishNotification:
+ 487              	.LFB5:
+ 106:../Appl/appl.c **** 
+ 107:../Appl/appl.c **** void Appl_RecFinishNotification(void)
+ 108:../Appl/appl.c **** {
+ 488              	 .loc 1 108 0
+ 489              	 .cfi_startproc
+ 490              	 
+ 491              	 
+ 492              	 
+ 493 0000 80B4     	 push {r7}
+ 494              	.LCFI27:
+ 495              	 .cfi_def_cfa_offset 4
+ 496              	 .cfi_offset 7,-4
+ 497 0002 00AF     	 add r7,sp,#0
+ 498              	.LCFI28:
+ 499              	 .cfi_def_cfa_register 7
+ 109:../Appl/appl.c **** 	dataReceived=1;
+ 500              	 .loc 1 109 0
+ 501 0004 034B     	 ldr r3,.L34
+ 502 0006 0122     	 movs r2,#1
+ 503 0008 1A70     	 strb r2,[r3]
+ 110:../Appl/appl.c **** }
+ 504              	 .loc 1 110 0
+ 505 000a BD46     	 mov sp,r7
+ 506              	.LCFI29:
+ 507              	 .cfi_def_cfa_register 13
+ 508              	 
+ 509 000c 5DF8047B 	 ldr r7,[sp],#4
+ 510              	.LCFI30:
+ 511              	 .cfi_restore 7
+ 512              	 .cfi_def_cfa_offset 0
+ 513 0010 7047     	 bx lr
+ 514              	.L35:
+ 515 0012 00BF     	 .align 2
+ 516              	.L34:
+ 517 0014 00000000 	 .word dataReceived
+ 518              	 .cfi_endproc
+ 519              	.LFE5:
+ 521              	 .section .text.Appl_ErrorNotification,"ax",%progbits
+ 522              	 .align 2
+ 523              	 .global Appl_ErrorNotification
+ 524              	 .thumb
+ 525              	 .thumb_func
+ 527              	Appl_ErrorNotification:
+ 528              	.LFB6:
+ 111:../Appl/appl.c **** 
+ 112:../Appl/appl.c **** void Appl_ErrorNotification(uint8_t errorCode)
+ 113:../Appl/appl.c **** {
+ 529              	 .loc 1 113 0
+ 530              	 .cfi_startproc
+ 531              	 
+ 532              	 
+ 533              	 
+ 534 0000 80B4     	 push {r7}
+ 535              	.LCFI31:
+ 536              	 .cfi_def_cfa_offset 4
+ 537              	 .cfi_offset 7,-4
+ 538 0002 83B0     	 sub sp,sp,#12
+ 539              	.LCFI32:
+ 540              	 .cfi_def_cfa_offset 16
+ 541 0004 00AF     	 add r7,sp,#0
+ 542              	.LCFI33:
+ 543              	 .cfi_def_cfa_register 7
+ 544 0006 0346     	 mov r3,r0
+ 545 0008 FB71     	 strb r3,[r7,#7]
+ 114:../Appl/appl.c **** 	ok=1;
+ 546              	 .loc 1 114 0
+ 547 000a 044B     	 ldr r3,.L37
+ 548 000c 0122     	 movs r2,#1
+ 549 000e 1A70     	 strb r2,[r3]
+ 115:../Appl/appl.c **** 	//stop everything - reset to default
+ 116:../Appl/appl.c **** }
+ 550              	 .loc 1 116 0
+ 551 0010 0C37     	 adds r7,r7,#12
+ 552              	.LCFI34:
+ 553              	 .cfi_def_cfa_offset 4
+ 554 0012 BD46     	 mov sp,r7
+ 555              	.LCFI35:
+ 556              	 .cfi_def_cfa_register 13
+ 557              	 
+ 558 0014 5DF8047B 	 ldr r7,[sp],#4
+ 559              	.LCFI36:
+ 560              	 .cfi_restore 7
+ 561              	 .cfi_def_cfa_offset 0
+ 562 0018 7047     	 bx lr
+ 563              	.L38:
+ 564 001a 00BF     	 .align 2
+ 565              	.L37:
+ 566 001c 00000000 	 .word ok
+ 567              	 .cfi_endproc
+ 568              	.LFE6:
+ 570              	 .section .text.Appl_RxNotification,"ax",%progbits
+ 571              	 .align 2
+ 572              	 .global Appl_RxNotification
+ 573              	 .thumb
+ 574              	 .thumb_func
+ 576              	Appl_RxNotification:
+ 577              	.LFB7:
+ 117:../Appl/appl.c **** 
+ 118:../Appl/appl.c **** void Appl_RxNotification(void)
+ 119:../Appl/appl.c **** {
+ 578              	 .loc 1 119 0
+ 579              	 .cfi_startproc
+ 580              	 
+ 581              	 
+ 582              	 
+ 583 0000 80B4     	 push {r7}
+ 584              	.LCFI37:
+ 585              	 .cfi_def_cfa_offset 4
+ 586              	 .cfi_offset 7,-4
+ 587 0002 00AF     	 add r7,sp,#0
+ 588              	.LCFI38:
+ 589              	 .cfi_def_cfa_register 7
+ 120:../Appl/appl.c **** 	status_notification=1;
+ 590              	 .loc 1 120 0
+ 591 0004 034B     	 ldr r3,.L40
+ 592 0006 0122     	 movs r2,#1
+ 593 0008 1A70     	 strb r2,[r3]
+ 121:../Appl/appl.c **** }
+ 594              	 .loc 1 121 0
+ 595 000a BD46     	 mov sp,r7
+ 596              	.LCFI39:
+ 597              	 .cfi_def_cfa_register 13
+ 598              	 
+ 599 000c 5DF8047B 	 ldr r7,[sp],#4
+ 600              	.LCFI40:
+ 601              	 .cfi_restore 7
+ 602              	 .cfi_def_cfa_offset 0
+ 603 0010 7047     	 bx lr
+ 604              	.L41:
+ 605 0012 00BF     	 .align 2
+ 606              	.L40:
+ 607 0014 00000000 	 .word status_notification
+ 608              	 .cfi_endproc
+ 609              	.LFE7:
+ 611              	 .section .text.Appl_HandelRXData,"ax",%progbits
+ 612              	 .align 2
+ 613              	 .global Appl_HandelRXData
+ 614              	 .thumb
+ 615              	 .thumb_func
+ 617              	Appl_HandelRXData:
+ 618              	.LFB8:
+ 122:../Appl/appl.c **** 
+ 123:../Appl/appl.c **** void Appl_HandelRXData(void)//reseteaza "data" si pune statusul pe 0
+ 124:../Appl/appl.c **** {
+ 619              	 .loc 1 124 0
+ 620              	 .cfi_startproc
+ 621              	 
+ 622              	 
+ 623              	 
+ 624 0000 80B4     	 push {r7}
+ 625              	.LCFI41:
+ 626              	 .cfi_def_cfa_offset 4
+ 627              	 .cfi_offset 7,-4
+ 628 0002 83B0     	 sub sp,sp,#12
+ 629              	.LCFI42:
+ 630              	 .cfi_def_cfa_offset 16
+ 631 0004 00AF     	 add r7,sp,#0
+ 632              	.LCFI43:
+ 633              	 .cfi_def_cfa_register 7
+ 125:../Appl/appl.c **** 	uint8_t i;
+ 126:../Appl/appl.c **** 	for(i=0;i<BUFFER_SIZE;i++)
+ 634              	 .loc 1 126 0
+ 635 0006 0023     	 movs r3,#0
+ 636 0008 FB71     	 strb r3,[r7,#7]
+ 637              	.L43:
+ 127:../Appl/appl.c **** 		{
+ 128:../Appl/appl.c **** 			data[i]=0;
+ 638              	 .loc 1 128 0 discriminator 2
+ 639 000a FB79     	 ldrb r3,[r7,#7]
+ 640 000c 034A     	 ldr r2,.L44
+ 641 000e 0021     	 movs r1,#0
+ 642 0010 D154     	 strb r1,[r2,r3]
+ 126:../Appl/appl.c **** 		{
+ 643              	 .loc 1 126 0 discriminator 2
+ 644 0012 FB79     	 ldrb r3,[r7,#7]
+ 645 0014 0133     	 adds r3,r3,#1
+ 646 0016 FB71     	 strb r3,[r7,#7]
+ 129:../Appl/appl.c **** 		}
+ 647              	 .loc 1 129 0 discriminator 2
+ 648 0018 F7E7     	 b .L43
+ 649              	.L45:
+ 650 001a 00BF     	 .align 2
+ 651              	.L44:
+ 652 001c 00000000 	 .word data
+ 653              	 .cfi_endproc
+ 654              	.LFE8:
+ 656              	 .text
+ 657              	.Letext0:
+ 658              	 .file 2 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\machine\\_default_types.h"
+ 659              	 .file 3 "c:\\users\\va40036139\\desktop\\dave_4-4-2_64bit_2018-02-23\\dave-ide-4.4.2-64bit\\eclipse\\arm-gcc-49\\arm-none-eabi\\include\\stdint.h"
+DEFINED SYMBOLS
+                            *ABS*:00000000 appl.c
+                            *COM*:00001000 data
+                            *COM*:00000004 len
+                            *COM*:00000001 dataReceived
+                            *COM*:00000001 status_notification
+    {standard input}:24     .bss.table:00000000 $d
+    {standard input}:27     .bss.table:00000000 table
+    {standard input}:30     .bss.have_table:00000000 $d
+    {standard input}:33     .bss.have_table:00000000 have_table
+                            *COM*:00000001 ok
+    {standard input}:37     .text.rc_crc32:00000000 $t
+    {standard input}:42     .text.rc_crc32:00000000 rc_crc32
+    {standard input}:121    .text.rc_crc32:00000058 $d
+    {standard input}:126    .text.Appl_Init:00000000 $t
+    {standard input}:131    .text.Appl_Init:00000000 Appl_Init
+    {standard input}:271    .text.Appl_Init:000000b0 $d
+    {standard input}:283    .text.Appl_MainFunction:00000000 $t
+    {standard input}:288    .text.Appl_MainFunction:00000000 Appl_MainFunction
+    {standard input}:576    .text.Appl_RxNotification:00000000 Appl_RxNotification
+    {standard input}:385    .text.Appl_MainFunction:00000078 $d
+    {standard input}:393    .text.Appl_GetDataPointer:00000000 $t
+    {standard input}:398    .text.Appl_GetDataPointer:00000000 Appl_GetDataPointer
+    {standard input}:428    .text.Appl_GetDataPointer:00000010 $d
+    {standard input}:433    .text.Appl_RecStartNotification:00000000 $t
+    {standard input}:438    .text.Appl_RecStartNotification:00000000 Appl_RecStartNotification
+    {standard input}:476    .text.Appl_RecStartNotification:00000018 $d
+    {standard input}:481    .text.Appl_RecFinishNotification:00000000 $t
+    {standard input}:486    .text.Appl_RecFinishNotification:00000000 Appl_RecFinishNotification
+    {standard input}:517    .text.Appl_RecFinishNotification:00000014 $d
+    {standard input}:522    .text.Appl_ErrorNotification:00000000 $t
+    {standard input}:527    .text.Appl_ErrorNotification:00000000 Appl_ErrorNotification
+    {standard input}:566    .text.Appl_ErrorNotification:0000001c $d
+    {standard input}:571    .text.Appl_RxNotification:00000000 $t
+    {standard input}:607    .text.Appl_RxNotification:00000014 $d
+    {standard input}:612    .text.Appl_HandelRXData:00000000 $t
+    {standard input}:617    .text.Appl_HandelRXData:00000000 Appl_HandelRXData
+    {standard input}:652    .text.Appl_HandelRXData:0000001c $d
+                     .debug_frame:00000010 $d
+
+UNDEFINED SYMBOLS
+Ctpl_SendData
